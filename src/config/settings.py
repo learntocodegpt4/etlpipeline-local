@@ -72,6 +72,10 @@ class Settings(BaseSettings):
         default=8000,
         description="API server port",
     )
+    cors_origins: str = Field(
+        default="*",
+        description="Comma-separated list of allowed CORS origins (use * for all in dev)",
+    )
 
     # Scheduler
     etl_schedule_enabled: bool = Field(

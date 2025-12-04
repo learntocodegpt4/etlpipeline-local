@@ -18,13 +18,16 @@ CREATE TABLE etl_job_logs (
 );
 GO
 
-CREATE INDEX IF NOT EXISTS ix_etl_job_logs_job_id ON etl_job_logs(job_id);
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name='ix_etl_job_logs_job_id' AND object_id = OBJECT_ID('etl_job_logs'))
+CREATE INDEX ix_etl_job_logs_job_id ON etl_job_logs(job_id);
 GO
 
-CREATE INDEX IF NOT EXISTS ix_etl_job_logs_status ON etl_job_logs(status);
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name='ix_etl_job_logs_status' AND object_id = OBJECT_ID('etl_job_logs'))
+CREATE INDEX ix_etl_job_logs_status ON etl_job_logs(status);
 GO
 
-CREATE INDEX IF NOT EXISTS ix_etl_job_logs_status_start ON etl_job_logs(status, start_time);
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name='ix_etl_job_logs_status_start' AND object_id = OBJECT_ID('etl_job_logs'))
+CREATE INDEX ix_etl_job_logs_status_start ON etl_job_logs(status, start_time);
 GO
 
 -- ETL Job Details table
@@ -46,7 +49,8 @@ CREATE TABLE etl_job_details (
 );
 GO
 
-CREATE INDEX IF NOT EXISTS ix_etl_job_details_job_id ON etl_job_details(job_id);
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name='ix_etl_job_details_job_id' AND object_id = OBJECT_ID('etl_job_details'))
+CREATE INDEX ix_etl_job_details_job_id ON etl_job_details(job_id);
 GO
 
 -- Raw API Responses table
@@ -62,10 +66,12 @@ CREATE TABLE raw_api_responses (
 );
 GO
 
-CREATE INDEX IF NOT EXISTS ix_raw_api_responses_job_id ON raw_api_responses(job_id);
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name='ix_raw_api_responses_job_id' AND object_id = OBJECT_ID('raw_api_responses'))
+CREATE INDEX ix_raw_api_responses_job_id ON raw_api_responses(job_id);
 GO
 
-CREATE INDEX IF NOT EXISTS ix_raw_api_responses_job_type ON raw_api_responses(job_id, data_type);
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name='ix_raw_api_responses_job_type' AND object_id = OBJECT_ID('raw_api_responses'))
+CREATE INDEX ix_raw_api_responses_job_type ON raw_api_responses(job_id, data_type);
 GO
 
 PRINT 'ETL tracking tables created successfully';

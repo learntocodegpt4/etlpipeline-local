@@ -26,10 +26,12 @@ CREATE TABLE awards (
 );
 GO
 
-CREATE INDEX IF NOT EXISTS ix_awards_code ON awards(code);
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name='ix_awards_code' AND object_id = OBJECT_ID('awards'))
+CREATE INDEX ix_awards_code ON awards(code);
 GO
 
-CREATE INDEX IF NOT EXISTS ix_awards_code_year ON awards(code, published_year);
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name='ix_awards_code_year' AND object_id = OBJECT_ID('awards'))
+CREATE INDEX ix_awards_code_year ON awards(code, published_year);
 GO
 
 -- Classifications table
@@ -56,10 +58,12 @@ CREATE TABLE classifications (
 );
 GO
 
-CREATE INDEX IF NOT EXISTS ix_classifications_award ON classifications(award_code);
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name='ix_classifications_award' AND object_id = OBJECT_ID('classifications'))
+CREATE INDEX ix_classifications_award ON classifications(award_code);
 GO
 
-CREATE INDEX IF NOT EXISTS ix_classifications_award_year ON classifications(award_code, published_year);
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name='ix_classifications_award_year' AND object_id = OBJECT_ID('classifications'))
+CREATE INDEX ix_classifications_award_year ON classifications(award_code, published_year);
 GO
 
 -- Pay rates table
@@ -88,10 +92,12 @@ CREATE TABLE pay_rates (
 );
 GO
 
-CREATE INDEX IF NOT EXISTS ix_pay_rates_award ON pay_rates(award_code);
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name='ix_pay_rates_award' AND object_id = OBJECT_ID('pay_rates'))
+CREATE INDEX ix_pay_rates_award ON pay_rates(award_code);
 GO
 
-CREATE INDEX IF NOT EXISTS ix_pay_rates_award_year ON pay_rates(award_code, published_year);
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name='ix_pay_rates_award_year' AND object_id = OBJECT_ID('pay_rates'))
+CREATE INDEX ix_pay_rates_award_year ON pay_rates(award_code, published_year);
 GO
 
 -- Expense allowances table
@@ -119,10 +125,12 @@ CREATE TABLE expense_allowances (
 );
 GO
 
-CREATE INDEX IF NOT EXISTS ix_expense_allowances_award ON expense_allowances(award_code);
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name='ix_expense_allowances_award' AND object_id = OBJECT_ID('expense_allowances'))
+CREATE INDEX ix_expense_allowances_award ON expense_allowances(award_code);
 GO
 
-CREATE INDEX IF NOT EXISTS ix_expense_allowances_award_year ON expense_allowances(award_code, published_year);
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name='ix_expense_allowances_award_year' AND object_id = OBJECT_ID('expense_allowances'))
+CREATE INDEX ix_expense_allowances_award_year ON expense_allowances(award_code, published_year);
 GO
 
 -- Wage allowances table
@@ -151,10 +159,12 @@ CREATE TABLE wage_allowances (
 );
 GO
 
-CREATE INDEX IF NOT EXISTS ix_wage_allowances_award ON wage_allowances(award_code);
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name='ix_wage_allowances_award' AND object_id = OBJECT_ID('wage_allowances'))
+CREATE INDEX ix_wage_allowances_award ON wage_allowances(award_code);
 GO
 
-CREATE INDEX IF NOT EXISTS ix_wage_allowances_award_year ON wage_allowances(award_code, published_year);
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name='ix_wage_allowances_award_year' AND object_id = OBJECT_ID('wage_allowances'))
+CREATE INDEX ix_wage_allowances_award_year ON wage_allowances(award_code, published_year);
 GO
 
 PRINT 'Base tables created successfully';
