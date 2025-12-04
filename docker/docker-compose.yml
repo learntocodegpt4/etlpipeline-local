@@ -1,0 +1,119 @@
+# FWC ETL Pipeline - Docker Compose
+version: '3.8'
+
+services:
+  # MS SQL Server for development
+  mssql:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: fwc-mssql
+    environment:
+      - ACCEPT_EULA=Y
+      - MSSQL_SA_PASSWORD=YourStrong@Password123
+      - MSSQL_PID=Developer
+    ports:
+      - "1433:1433"
+    volumes:
+      - mssql_data:/var/opt/mssql
+    healthcheck:
+      test: /opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P "YourStrong@Password123" -Q "SELECT 1" -b -o /dev/null
+      interval: 10s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+    networks:
+      - fwc-network
+
+  # ETL Pipeline API
+  etl-api:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: fwc-etl-api
+    environment:
+      - FWC_API_BASE_URL=https://api.fwc.gov.au/api/v1
+      - FWC_API_KEY=${FWC_API_KEY:-}
+      - MSSQL_HOST=mssql
+      - MSSQL_PORT=1433
+      - MSSQL_DATABASE=fwc_awards
+      - MSSQL_USERNAME=sa
+      - MSSQL_PASSWORD=YourStrong@Password123
+      - MSSQL_DRIVER=ODBC Driver 18 for SQL Server
+      - MSSQL_TRUST_SERVER_CERTIFICATE=yes
+      - SQLITE_DATABASE_PATH=/app/data/etl_state.db
+      - SCHEDULER_ENABLED=true
+      - SCHEDULER_CRON_EXPRESSION=0 2 * * *
+      - LOG_LEVEL=INFO
+      - LOG_FORMAT=json
+      - API_HOST=0.0.0.0
+      - API_PORT=8000
+      - ENVIRONMENT=development
+    ports:
+      - "8000:8000"
+    volumes:
+      - etl_data:/app/data
+      - etl_logs:/app/logs
+    depends_on:
+      mssql:
+        condition: service_healthy
+    networks:
+      - fwc-network
+    restart: unless-stopped
+
+  # ETL Worker (for scheduled jobs)
+  etl-worker:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: fwc-etl-worker
+    command: python -m src.main --mode schedule
+    environment:
+      - FWC_API_BASE_URL=https://api.fwc.gov.au/api/v1
+      - FWC_API_KEY=${FWC_API_KEY:-}
+      - MSSQL_HOST=mssql
+      - MSSQL_PORT=1433
+      - MSSQL_DATABASE=fwc_awards
+      - MSSQL_USERNAME=sa
+      - MSSQL_PASSWORD=YourStrong@Password123
+      - MSSQL_DRIVER=ODBC Driver 18 for SQL Server
+      - MSSQL_TRUST_SERVER_CERTIFICATE=yes
+      - SQLITE_DATABASE_PATH=/app/data/etl_state.db
+      - SCHEDULER_ENABLED=true
+      - SCHEDULER_CRON_EXPRESSION=0 2 * * *
+      - LOG_LEVEL=INFO
+      - LOG_FORMAT=json
+      - ENVIRONMENT=development
+    volumes:
+      - etl_data:/app/data
+      - etl_logs:/app/logs
+    depends_on:
+      mssql:
+        condition: service_healthy
+    networks:
+      - fwc-network
+    restart: unless-stopped
+
+  # Next.js UI
+  etl-ui:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.ui
+    container_name: fwc-etl-ui
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:8000
+      - NEXT_PUBLIC_WS_URL=ws://localhost:8000
+    ports:
+      - "3000:3000"
+    depends_on:
+      - etl-api
+    networks:
+      - fwc-network
+    restart: unless-stopped
+
+networks:
+  fwc-network:
+    driver: bridge
+
+volumes:
+  mssql_data:
+  etl_data:
+  etl_logs:

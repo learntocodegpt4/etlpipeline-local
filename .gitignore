@@ -205,3 +205,18 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# Node.js (UI)
+ui/node_modules/
+ui/.next/
+ui/out/
+ui/.pnp/
+ui/.pnp.js
+
+# Local data
+data/
+*.db
+*.sqlite
+
+# Logs
+logs/
