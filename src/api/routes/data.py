@@ -54,17 +54,19 @@ async def preview_table(
     offset = (page - 1) * limit
 
     try:
-        # Get total count
-        count_sql = f"SELECT COUNT(*) FROM {table}"  # noqa: S608
+        # Table name is validated against VALID_TABLES whitelist above,
+        # so SQL injection is prevented by design
+        count_sql = f"SELECT COUNT(*) FROM {table}"
         total_count = connector.execute_scalar(count_sql) or 0
 
         # Get data with pagination
+        # Table name is validated against VALID_TABLES whitelist above
         data_sql = f"""
             SELECT * FROM {table}
             ORDER BY id
             OFFSET :offset ROWS
             FETCH NEXT :limit ROWS ONLY
-        """  # noqa: S608
+        """
 
         rows = connector.execute_raw(
             data_sql,
@@ -108,8 +110,9 @@ async def get_table_stats(table: str) -> dict[str, Any]:
     connector = SQLConnector()
 
     try:
-        # Get basic stats
-        count_sql = f"SELECT COUNT(*) FROM {table}"  # noqa: S608
+        # Table name is validated against VALID_TABLES whitelist above,
+        # so SQL injection is prevented by design
+        count_sql = f"SELECT COUNT(*) FROM {table}"
         total_count = connector.execute_scalar(count_sql) or 0
 
         stats: dict[str, Any] = {
@@ -118,13 +121,14 @@ async def get_table_stats(table: str) -> dict[str, Any]:
         }
 
         # Try to get date range if table has created_at
+        # Table name is validated against VALID_TABLES whitelist above
         try:
             date_sql = f"""
                 SELECT
                     MIN(created_at) as first_record,
                     MAX(created_at) as last_record
                 FROM {table}
-            """  # noqa: S608
+            """
             dates = connector.execute_raw(date_sql)
             if dates:
                 row = dates[0]

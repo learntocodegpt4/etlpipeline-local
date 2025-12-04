@@ -22,6 +22,7 @@ class ClassificationsTransformer(BaseTransformer):
             "classification": str,
             "classification_level": int,
             "parent_classification_name": str,
+            "employee_rate_type_code": str,
             "operative_from": datetime,
             "operative_to": datetime,
             "version_number": int,

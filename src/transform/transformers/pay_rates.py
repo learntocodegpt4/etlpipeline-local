@@ -25,6 +25,7 @@ class PayRatesTransformer(BaseTransformer):
             "calculated_pay_rate_id": str,
             "calculated_rate_type": str,
             "calculated_rate": float,
+            "parent_classification_name": str,
             "classification": str,
             "classification_level": int,
             "employee_rate_type_code": str,
