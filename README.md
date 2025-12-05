@@ -56,6 +56,10 @@ A complete Python ETL pipeline that extracts data from the FWC (Fair Work Commis
    sqlcmd -S localhost -d etl_pipeline -i migrations/sql/001_create_base_tables.sql
    sqlcmd -S localhost -d etl_pipeline -i migrations/sql/002_create_etl_tracking_tables.sql
    ```
+   Migrations using python
+      .\venv\Scripts\Activate.ps1
+      pip install pyodbc
+      python .\migrations\run_migrations.py
 
 6. **Install UI dependencies:**
    ```bash

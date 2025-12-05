@@ -95,7 +95,9 @@ class Transformer(PipelineStep):
     @property
     def target_key(self) -> str:
         """Key to store transformed data in context"""
-        return f"{self.source_key}_transformed"
+        # Store transformed data under the transformer's own name by default
+        # so downstream loaders that reference the transformer name will find it.
+        return self.name
 
     @abstractmethod
     async def transform(

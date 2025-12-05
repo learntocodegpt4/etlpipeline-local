@@ -1,15 +1,15 @@
 # FWC API Configuration
 FWC_API_BASE_URL=https://api.fwc.gov.au/api/v1
-FWC_API_KEY=your_api_key_here
+FWC_API_KEY=4669506fdbea4e7783d3dbb7b899b935
 
 # MS SQL Configuration (existing container)
-MSSQL_CONNECTION_STRING=mssql+pyodbc://sa:YourPassword@localhost:1433/etl_pipeline?driver=ODBC+Driver+17+for+SQL+Server
+MSSQL_CONNECTION_STRING=mssql+pyodbc://sa:Piyush@23D!g!tal@202.131.115.228:1433/RosteredAIDBDev?driver=ODBC+Driver+17+for+SQL+Server
 # Or individual params:
-MSSQL_HOST=localhost
+MSSQL_HOST=202.131.115.228
 MSSQL_PORT=1433
-MSSQL_DATABASE=etl_pipeline
+MSSQL_DATABASE=RosteredAIDBDev
 MSSQL_USER=sa
-MSSQL_PASSWORD=YourPassword
+MSSQL_PASSWORD=Piyush@23D!g!tal
 
 # For Docker containers connecting to host's MS SQL
 # MSSQL_HOST=host.docker.internal

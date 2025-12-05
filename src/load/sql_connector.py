@@ -28,6 +28,20 @@ class SQLConnector:
         self.pool_size = pool_size
         self.max_overflow = max_overflow
 
+        # Log a masked version of the connection string for debugging
+        try:
+            def _mask_connstr(s: str) -> str:
+                # mask password portion user:password@ -> user:***@
+                import re
+
+                return re.sub(r"(//[^:]+:)[^@]+(@)", r"\1***\2", s)
+
+            masked = _mask_connstr(self.connection_string)
+            logger.info("database_connection_string", connection_string=masked)
+        except Exception:
+            # don't fail initialization due to logging
+            pass
+
         self._engine: Optional[Engine] = None
         self._session_factory: Optional[sessionmaker] = None
 

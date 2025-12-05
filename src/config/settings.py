@@ -5,6 +5,7 @@ from typing import Optional
 
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
+import re
 
 
 class Settings(BaseSettings):
@@ -23,7 +24,7 @@ class Settings(BaseSettings):
         description="Base URL for FWC Modern Awards API",
     )
     fwc_api_key: str = Field(
-        default="",
+        default="4669506fdbea4e7783d3dbb7b899b935",
         description="API key for FWC API (Ocp-Apim-Subscription-Key)",
     )
 
@@ -33,12 +34,13 @@ class Settings(BaseSettings):
         description="Full MS SQL connection string",
     )
     mssql_host: str = Field(
-        default="localhost",
+        default="tcp:202.131.115.228",
         description="MS SQL Server host",
     )
-    mssql_port: int = Field(
-        default=1433,
-        description="MS SQL Server port",
+    # Accept port as string to allow env vars like 'host:port' without failing parsing.
+    mssql_port: str = Field(
+        default="1433",
+        description="MS SQL Server port (string to tolerate host:port env values)",
     )
     mssql_database: str = Field(
         default="etl_pipeline",
@@ -49,7 +51,7 @@ class Settings(BaseSettings):
         description="MS SQL username",
     )
     mssql_password: str = Field(
-        default="",
+        default="Piyush@23D!g!tal",
         description="MS SQL password",
     )
     mssql_driver: str = Field(
@@ -121,15 +123,65 @@ class Settings(BaseSettings):
     def database_url(self) -> str:
         """Get the database connection URL"""
         if self.mssql_connection_string:
-            return self.mssql_connection_string
+            # If the provided full connection string appears malformed (e.g. contains
+            # unescaped '@' characters in the password), avoid using it and fall
+            # back to building the URL from individual params. A valid URL should
+            # only contain a single '@' separating credentials and host.
+            if self.mssql_connection_string.count("@") == 1:
+                return self.mssql_connection_string
+            else:
+                # Don't raise here; log a warning to help debugging and continue
+                # to build a safe connection string from individual components.
+                try:
+                    import warnings
 
-        # Build connection string from individual params
-        driver = self.mssql_driver.replace(" ", "+")
-        return (
-            f"mssql+pyodbc://{self.mssql_user}:{self.mssql_password}"
-            f"@{self.mssql_host}:{self.mssql_port}/{self.mssql_database}"
-            f"?driver={driver}"
+                    warnings.warn(
+                        "MSSQL_CONNECTION_STRING looks malformed (multiple '@' characters)."
+                        " Falling back to individual MSSQL_* settings.",
+                        UserWarning,
+                    )
+                except Exception:
+                    pass
+        # Build connection string from individual params using ODBC-style
+        # connection and place it into SQLAlchemy's `odbc_connect` parameter.
+        from urllib.parse import quote_plus
+        driver = self.mssql_driver
+
+        host_raw = (self.mssql_host or "localhost").strip()
+        had_tcp = bool(re.match(r"^tcp:", host_raw, flags=re.IGNORECASE))
+        host_clean = re.sub(r"^tcp:/*", "", host_raw, flags=re.IGNORECASE)
+
+        port_candidate = None
+        if "," in host_clean:
+            parts = host_clean.split(",", 1)
+            host_part = parts[0]
+            port_candidate = parts[1]
+        elif ":" in host_clean:
+            parts = host_clean.rsplit(":", 1)
+            host_part = parts[0]
+            port_candidate = parts[1]
+        else:
+            host_part = host_clean
+
+        port = str(self.mssql_port or "").strip()
+        if not port.isdigit():
+            if port_candidate:
+                m = re.search(r"(\d{2,5})$", port_candidate)
+                port = m.group(1) if m else "1433"
+            else:
+                port = "1433"
+
+        server_value = f"{host_part},{port}"
+        if had_tcp:
+            server_value = f"tcp:{server_value}"
+
+        odbc_conn = (
+            f"DRIVER={{{driver}}};SERVER={server_value};"
+            f"DATABASE={self.mssql_database};UID={self.mssql_user};PWD={self.mssql_password};"
+            "TrustServerCertificate=Yes"
         )
+
+        return f"mssql+pyodbc:///?odbc_connect={quote_plus(odbc_conn)}"
 
 
 @lru_cache
