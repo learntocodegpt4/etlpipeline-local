@@ -119,8 +119,9 @@ class ETLPipeline:
 
         logger.info("etl_pipeline_starting", job_id=job_id)
 
-        # Create job record
-        await self.state_manager.create_job(job_id)
+        # Create job record with a descriptive name (pipeline + awards + timestamp)
+        job_name = f"fwc_awards_etl:{','.join(self.award_codes) if self.award_codes else 'all'}:{datetime.utcnow().isoformat()}"
+        await self.state_manager.create_job(job_id, name=job_name)
 
         # Update state
         await self.state_manager.update_job_status(job_id, "running")

@@ -33,6 +33,7 @@ class JobResponse(BaseModel):
     """Response model for job details"""
 
     job_id: str
+    name: Optional[str] = None
     status: str
     start_time: str
     end_time: Optional[str]
@@ -123,11 +124,13 @@ async def get_job_logs(job_id: str) -> List[JobStepResponse]:
     return [JobStepResponse(**step) for step in steps]
 
 
-async def _run_pipeline_task(award_codes: Optional[List[str]] = None) -> None:
-    """Background task to run ETL pipeline"""
+async def _run_pipeline_task(
+    award_codes: Optional[List[str]] = None, job_id: Optional[str] = None
+) -> None:
+    """Background task to run ETL pipeline with a provided job_id."""
     try:
-        await run_etl_pipeline(award_codes=award_codes)
-    except Exception as e:
+        await run_etl_pipeline(award_codes=award_codes, job_id=job_id)
+    except Exception:
         logger.exception("background_pipeline_error")
 
 
@@ -145,8 +148,8 @@ async def trigger_job(
     # Create job record first
     await sm.create_job(job_id)
 
-    # Run pipeline in background
-    background_tasks.add_task(_run_pipeline_task, request.award_codes)
+    # Run pipeline in background; pass job_id so the pipeline uses the same job record
+    background_tasks.add_task(_run_pipeline_task, request.award_codes, job_id)
 
     logger.info("job_triggered", job_id=job_id)
 
@@ -156,8 +159,54 @@ async def trigger_job(
     )
 
 
+@router.post("/jobs/trigger_sync")
+async def trigger_job_sync(request: TriggerRequest) -> Dict[str, Any]:
+    """Synchronously run the ETL pipeline and return the result.
+
+    This endpoint is intended for manual testing via Swagger/UI. It will run
+    the pipeline inline and return the pipeline result (may take time).
+    """
+    import uuid
+
+    job_id = str(uuid.uuid4())
+    sm = get_state_manager()
+
+    logger.info("job_triggered_sync", job_id=job_id)
+
+    # Run pipeline inline and return the result. ETLPipeline.run will create the
+    # job record itself using the provided job_id, so we must not pre-create it
+    # here (that caused UNIQUE constraint failures).
+    result = await run_etl_pipeline(award_codes=request.award_codes, job_id=job_id)
+
+    # Save result to state (run_etl_pipeline already calls save_job_result,
+    # but saving again is idempotent for the state DB)
+    try:
+        await sm.save_job_result(job_id, result)
+    except Exception:
+        # If save fails because the pipeline already saved it, ignore.
+        pass
+
+    return result.to_dict()
+
+
 @router.get("/jobs/stats/summary")
 async def get_job_stats(days: int = Query(7, ge=1, le=30)) -> Dict[str, Any]:
     """Get job statistics summary"""
     sm = get_state_manager()
     return await sm.get_recent_job_stats(days=days)
+
+
+@router.post("/jobs/cleanup_pending")
+async def cleanup_pending_jobs(age_seconds: Optional[int] = None) -> Dict[str, Any]:
+    """Mark pending jobs as failed. Optionally only those older than `age_seconds`."""
+    sm = get_state_manager()
+    count = await sm.cleanup_pending_jobs(older_than_seconds=age_seconds)
+    return {"marked_failed": count}
+
+
+@router.delete("/jobs/{job_id}")
+async def delete_job(job_id: str) -> Dict[str, Any]:
+    """Delete a job and its steps from the state DB."""
+    sm = get_state_manager()
+    await sm.delete_job(job_id)
+    return {"deleted": job_id}

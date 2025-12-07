@@ -63,16 +63,10 @@ async def preview_data(
         count_result = connector.execute_query(count_sql, params)
         total_count = count_result[0]["cnt"] if count_result else 0
 
-        # Get data
-        data_sql = f"""
-            SELECT TOP(:limit) * FROM (
-                SELECT *, ROW_NUMBER() OVER (ORDER BY id) as rn
-                FROM {table}
-                {where_clause}
-            ) t
-            WHERE rn > :offset
-            ORDER BY rn
-        """
+        # Get data using OFFSET/FETCH for reliable server-side pagination
+        # Note: requires an ORDER BY clause; use `id` if present.
+        order_by = "id"
+        data_sql = f"SELECT * FROM {table} {where_clause} ORDER BY {order_by} OFFSET :offset ROWS FETCH NEXT :limit ROWS ONLY"
         data = connector.execute_query(data_sql, params)
 
         # Remove row number from results

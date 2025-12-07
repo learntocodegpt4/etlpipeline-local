@@ -68,19 +68,74 @@ class StateManager:
             """)
             await db.commit()
             logger.info("state_manager_initialized")
+            # Ensure 'name' column exists on jobs table for human-friendly job names
+            cursor = await db.execute("PRAGMA table_info(jobs)")
+            cols = await cursor.fetchall()
+            col_names = [c[1] for c in cols]
+            if "name" not in col_names:
+                try:
+                    await db.execute("ALTER TABLE jobs ADD COLUMN name TEXT")
+                    await db.commit()
+                    logger.info("state_manager_added_name_column")
+                except Exception:
+                    # Older SQLite versions may error; ignore if cannot add
+                    pass
 
-    async def create_job(self, job_id: str) -> None:
+    async def create_job(self, job_id: str, name: Optional[str] = None) -> None:
         """Create a new job record"""
         async with aiosqlite.connect(self.db_path) as db:
-            await db.execute(
-                """
-                INSERT INTO jobs (job_id, status, start_time)
-                VALUES (?, ?, ?)
-                """,
-                (job_id, "pending", datetime.utcnow().isoformat()),
-            )
+            if name is not None:
+                await db.execute(
+                    """
+                    INSERT INTO jobs (job_id, status, start_time, name)
+                    VALUES (?, ?, ?, ?)
+                    """,
+                    (job_id, "pending", datetime.utcnow().isoformat(), name),
+                )
+            else:
+                await db.execute(
+                    """
+                    INSERT INTO jobs (job_id, status, start_time)
+                    VALUES (?, ?, ?)
+                    """,
+                    (job_id, "pending", datetime.utcnow().isoformat()),
+                )
             await db.commit()
             logger.info("job_created", job_id=job_id)
+
+    async def delete_job(self, job_id: str) -> None:
+        """Delete a job and its steps from the state DB (irreversible)."""
+        async with aiosqlite.connect(self.db_path) as db:
+            await db.execute("DELETE FROM job_steps WHERE job_id = ?", (job_id,))
+            await db.execute("DELETE FROM jobs WHERE job_id = ?", (job_id,))
+            await db.commit()
+            logger.info("job_deleted", job_id=job_id)
+
+    async def cleanup_pending_jobs(self, older_than_seconds: Optional[int] = None) -> int:
+        """Mark pending jobs as failed (optionally only those older than given seconds).
+
+        Returns number of jobs marked failed.
+        """
+        async with aiosqlite.connect(self.db_path) as db:
+            # Build selection
+            if older_than_seconds is None:
+                cursor = await db.execute("SELECT job_id FROM jobs WHERE status = 'pending'")
+            else:
+                # Convert to datetime comparison using SQLite datetime functions
+                cursor = await db.execute(
+                    "SELECT job_id FROM jobs WHERE status = 'pending' AND start_time <= datetime('now', ?)",
+                    (f'-{older_than_seconds} seconds',),
+                )
+            rows = await cursor.fetchall()
+            job_ids = [r[0] for r in rows]
+            for jid in job_ids:
+                await db.execute(
+                    "UPDATE jobs SET status = ?, error_message = ? WHERE job_id = ?",
+                    ("failed", "Marked failed by cleanup", jid),
+                )
+            await db.commit()
+            logger.info("cleanup_pending_jobs", count=len(job_ids))
+            return len(job_ids)
 
     async def update_job_status(
         self,

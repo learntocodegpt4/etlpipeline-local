@@ -145,4 +145,16 @@ export async function triggerJob(awardCodes?: string[]) {
   return res.json();
 }
 
+export async function cleanupPendingJobs() {
+  const res = await fetch(`${API_URL}/jobs/cleanup_pending`, { method: 'POST' });
+  if (!res.ok) throw new Error('Failed to cleanup pending jobs');
+  return res.json();
+}
+
+export async function deleteJob(jobId: string) {
+  const res = await fetch(`${API_URL}/jobs/${jobId}`, { method: 'DELETE' });
+  if (!res.ok) throw new Error('Failed to delete job');
+  return res.json();
+}
+
 export { globalMutate as mutate };

@@ -42,6 +42,16 @@ export default function JobsPage() {
 
   const columns: GridColDef[] = [
     {
+      field: 'name',
+      headerName: 'Name',
+      width: 300,
+      renderCell: (params) => (
+        <Typography sx={{ whiteSpace: 'normal', wordBreak: 'break-word' }}>
+          {params.value}
+        </Typography>
+      ),
+    },
+    {
       field: 'job_id',
       headerName: 'Job ID',
       width: 300,
@@ -105,6 +115,27 @@ export default function JobsPage() {
         </Typography>
       ),
     },
+    {
+      field: 'actions',
+      headerName: 'Actions',
+      width: 160,
+      sortable: false,
+      renderCell: (params) => (
+        <Box>
+          <Button
+            size="small"
+            color="error"
+            onClick={async () => {
+              if (!confirm('Delete job ' + params.row.job_id + '?')) return;
+              await fetch((process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8081') + '/jobs/' + params.row.job_id, { method: 'DELETE' });
+              refreshJobs();
+            }}
+          >
+            Delete
+          </Button>
+        </Box>
+      ),
+    },
   ];
 
   const handleTrigger = async () => {
@@ -138,8 +169,20 @@ export default function JobsPage() {
             variant="contained"
             startIcon={<PlayArrow />}
             onClick={() => setTriggerDialogOpen(true)}
+            sx={{ mr: 1 }}
           >
             Trigger Job
+          </Button>
+          <Button
+            variant="outlined"
+            color="warning"
+            onClick={async () => {
+              // Cleanup pending jobs
+              const res = await fetch((process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8081') + '/jobs/cleanup_pending', { method: 'POST' });
+              if (res.ok) refreshJobs();
+            }}
+          >
+            Cleanup Pending
           </Button>
         </Box>
       </Box>
