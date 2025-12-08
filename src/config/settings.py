@@ -34,7 +34,7 @@ class Settings(BaseSettings):
         description="Full MS SQL connection string",
     )
     mssql_host: str = Field(
-        default="tcp:202.131.115.228",
+        default="202.131.115.228",
         description="MS SQL Server host",
     )
     # Accept port as string to allow env vars like 'host:port' without failing parsing.
@@ -51,7 +51,7 @@ class Settings(BaseSettings):
         description="MS SQL username",
     )
     mssql_password: str = Field(
-        default="Piyush@23D!g!tal",
+        default="Piyush@23D!gita1",
         description="MS SQL password",
     )
     mssql_driver: str = Field(
