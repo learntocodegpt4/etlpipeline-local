@@ -1,48 +1,59 @@
 # Next.js UI Dockerfile
 FROM node:20-alpine AS base
 
-# Install dependencies only when needed
+# Install dependencies
 FROM base AS deps
 WORKDIR /app
-
-# Copy package files
 COPY ui/package*.json ./
-
-# Install dependencies
 RUN npm ci
 
-# Rebuild the source code only when needed
+# Build the application
 FROM base AS builder
 WORKDIR /app
+
+# Accept build arguments
+ARG NEXT_PUBLIC_BASE_PATH=/etlui
+ARG NEXT_PUBLIC_ASSET_PREFIX=/etlui
+ARG NEXT_PUBLIC_API_URL
+ARG NEXT_PUBLIC_WS_URL
+
+# Set as environment variables for build
+ENV NEXT_PUBLIC_BASE_PATH=$NEXT_PUBLIC_BASE_PATH
+ENV NEXT_PUBLIC_ASSET_PREFIX=$NEXT_PUBLIC_ASSET_PREFIX
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+ENV NEXT_PUBLIC_WS_URL=$NEXT_PUBLIC_WS_URL
+ENV NEXT_TELEMETRY_DISABLED=1
+ENV NODE_ENV=production
+
 COPY --from=deps /app/node_modules ./node_modules
 COPY ui/ .
 
-# Set environment variables for build
-ENV NEXT_TELEMETRY_DISABLED=1
+# Ensure public directory exists
+RUN mkdir -p public
 
-# Build the application
+# Debug: Print environment variables
+RUN echo "Building with:" && \
+    echo "NEXT_PUBLIC_BASE_PATH=$NEXT_PUBLIC_BASE_PATH" && \
+    echo "NEXT_PUBLIC_ASSET_PREFIX=$NEXT_PUBLIC_ASSET_PREFIX" && \
+    echo "NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL"
+
+# Build with environment variables baked in
 RUN npm run build
 
-# Production image
+# Production image for standalone output
 FROM base AS runner
 WORKDIR /app
-
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
+RUN addgroup --system --gid 1001 nodejs && adduser --system --uid 1001 nextjs
 
-# Create non-root user
-RUN addgroup --system --gid 1001 nodejs
-RUN adduser --system --uid 1001 nextjs
-
-# Copy built files
+# Copy standalone output
 COPY --from=builder /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
 USER nextjs
-
 EXPOSE 3001
-
 ENV PORT=3001
 ENV HOSTNAME="0.0.0.0"
 

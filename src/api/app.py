@@ -3,7 +3,7 @@
 import asyncio
 from contextlib import asynccontextmanager
 from typing import AsyncIterator
-
+import os
 import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -60,19 +60,38 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
 
 # Create FastAPI app
+# app = FastAPI(
+#     title="FWC ETL Pipeline API",
+#     description="REST API for FWC Modern Awards ETL Pipeline",
+#     version="1.0.0",
+#     lifespan=lifespan,
+# )
+# Get root path from environment variable for reverse proxy support
+root_path = os.getenv("ROOT_PATH", "")
 app = FastAPI(
-    title="FWC ETL Pipeline API",
+    title="ETL Pipeline API",
     description="REST API for FWC Modern Awards ETL Pipeline",
     version="1.0.0",
-    lifespan=lifespan,
+    lifespan = lifespan,
+    root_path=root_path,  # This makes /docs work with prefix
+    docs_url="/docs",
+    redoc_url="/redoc",
+    openapi_url="/openapi.json"
 )
 
 # Add CORS middleware
 settings = get_settings()
 cors_origins = settings.cors_origins.split(",") if settings.cors_origins != "*" else ["*"]
+# app.add_middleware(
+#     CORSMiddleware,
+#     allow_origins=cors_origins,  # Configure via CORS_ORIGINS env var in production
+#     allow_credentials=True,
+#     allow_methods=["*"],
+#     allow_headers=["*"],
+# )
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=cors_origins,  # Configure via CORS_ORIGINS env var in production
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

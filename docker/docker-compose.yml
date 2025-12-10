@@ -1,68 +1,24 @@
-# ETL Pipeline Docker Compose Configuration
-# Note: MS SQL Server is NOT included - uses existing container on host
-
-version: '3.8'
-
 services:
-  # ETL Pipeline Worker
-  etl-pipeline:
-    build:
-      context: ..
-      dockerfile: docker/Dockerfile
-    container_name: etl-pipeline
-    command: python run.py --mode schedule
-    environment:
-      - FWC_API_BASE_URL=${FWC_API_BASE_URL:-https://api.fwc.gov.au/api/v1}
-      - FWC_API_KEY=${FWC_API_KEY}
-      - MSSQL_HOST=${MSSQL_HOST:-host.docker.internal}
-      - MSSQL_PORT=${MSSQL_PORT:-1433}
-      - MSSQL_DATABASE=${MSSQL_DATABASE:-etl_pipeline}
-      - MSSQL_USER=${MSSQL_USER:-sa}
-      - MSSQL_PASSWORD=${MSSQL_PASSWORD}
-      - SQLITE_DATABASE_PATH=/app/data/state.db
-      - ETL_SCHEDULE_ENABLED=${ETL_SCHEDULE_ENABLED:-true}
-      - ETL_CRON_EXPRESSION=${ETL_CRON_EXPRESSION:-0 2 * * *}
-      - LOG_LEVEL=${LOG_LEVEL:-INFO}
-    volumes:
-      - etl-data:/app/data
-      - etl-logs:/app/logs
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-    restart: unless-stopped
-    networks:
-      - etl-network
-
-  # FastAPI Backend
-  etl-api:
+  # Python FastAPI Backend
+  api:
     build:
       context: ..
       dockerfile: docker/Dockerfile
     container_name: etl-api
-    command: python -m uvicorn src.api.app:app --host 0.0.0.0 --port 8000
-    environment:
-      - FWC_API_BASE_URL=${FWC_API_BASE_URL:-https://api.fwc.gov.au/api/v1}
-      - FWC_API_KEY=${FWC_API_KEY}
-      - MSSQL_HOST=${MSSQL_HOST:-host.docker.internal}
-      - MSSQL_PORT=${MSSQL_PORT:-1433}
-      - MSSQL_DATABASE=${MSSQL_DATABASE:-etl_pipeline}
-      - MSSQL_USER=${MSSQL_USER:-sa}
-      - MSSQL_PASSWORD=${MSSQL_PASSWORD}
-      - SQLITE_DATABASE_PATH=/app/data/state.db
-      - API_HOST=0.0.0.0
-      - API_PORT=8000
-      - ETL_SCHEDULE_ENABLED=${ETL_SCHEDULE_ENABLED:-true}
-      - ETL_CRON_EXPRESSION=${ETL_CRON_EXPRESSION:-0 2 * * *}
-      - LOG_LEVEL=${LOG_LEVEL:-INFO}
     ports:
       - "8000:8000"
+    environment:
+      - MSSQL_HOST=host.docker.internal
+      - MSSQL_PORT=1433
+      - MSSQL_DATABASE=etl_pipeline
+      - MSSQL_USER=sa
+      - MSSQL_PASSWORD=${MSSQL_PASSWORD:-Piyush@23D!gita1}
+      - PYTHONUNBUFFERED=1
+      - ROOT_PATH=/etlapi
     volumes:
-      - etl-data:/app/data
-      - etl-logs:/app/logs
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-    depends_on:
-      - etl-pipeline
-    restart: unless-stopped
+      - ../src:/app/src
+      - ../logs:/app/logs
+      - ../data:/app/data
     networks:
       - etl-network
     healthcheck:
@@ -70,27 +26,28 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+      start_period: 40s
+    restart: unless-stopped
 
   # Next.js UI
-  etl-ui:
+  ui:
     build:
       context: ..
       dockerfile: docker/Dockerfile.ui
+      args:
+        - NEXT_PUBLIC_BASE_PATH=/etlui
+        - NEXT_PUBLIC_ASSET_PREFIX=/etlui
+        - NEXT_PUBLIC_API_URL=http://localhost:8081/etlapi/api
+        - NEXT_PUBLIC_WS_URL=ws://localhost:8081/etlapi/ws
     container_name: etl-ui
-    environment:
-      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://localhost:8081/api}
-      - NEXT_PUBLIC_WS_URL=${NEXT_PUBLIC_WS_URL:-ws://localhost:8081/ws}
     ports:
       - "3001:3001"
-    depends_on:
-      - etl-api
-    restart: unless-stopped
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:8081/etlapi/api
+      - NEXT_PUBLIC_WS_URL=ws://localhost:8081/etlapi/ws
     networks:
       - etl-network
-
-volumes:
-  etl-data:
-  etl-logs:
+    restart: unless-stopped
 
 networks:
   etl-network:
