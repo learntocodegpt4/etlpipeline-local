@@ -1,0 +1,43 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: etlpipeline-nginx
+  namespace: etlpipeline
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: etlpipeline-nginx
+  template:
+    metadata:
+      labels:
+        app: etlpipeline-nginx
+    spec:
+      containers:
+        - name: nginx
+          image: nginx:stable-alpine
+          ports:
+            - containerPort: 80
+          volumeMounts:
+            - name: nginx-config
+              mountPath: /etc/nginx/nginx.conf
+              subPath: nginx.conf
+      volumes:
+        - name: nginx-config
+          configMap:
+            name: etlpipeline-nginx-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: etlpipeline-nginx
+  namespace: etlpipeline
+spec:
+  selector:
+    app: etlpipeline-nginx
+  ports:
+    - name: http
+      protocol: TCP
+      port: 80
+      targetPort: 80
+  type: LoadBalancer

@@ -1,0 +1,51 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: etlpipeline-ui
+  namespace: etlpipeline
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: etlpipeline-ui
+  template:
+    metadata:
+      labels:
+        app: etlpipeline-ui
+    spec:
+      containers:
+        - name: ui
+          image: your-registry/etlpipeline-ui:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 3000
+          env:
+            - name: NEXT_PUBLIC_API_URL
+              value: "http://etlpipeline-nginx:80/api"
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 3000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 3000
+            initialDelaySeconds: 15
+            periodSeconds: 20
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: etlpipeline-ui
+  namespace: etlpipeline
+spec:
+  selector:
+    app: etlpipeline-ui
+  ports:
+    - name: http
+      protocol: TCP
+      port: 3000
+      targetPort: 3000
+  type: ClusterIP
