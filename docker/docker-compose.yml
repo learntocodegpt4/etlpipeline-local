@@ -37,14 +37,14 @@ services:
       args:
         - NEXT_PUBLIC_BASE_PATH=/etlui
         - NEXT_PUBLIC_ASSET_PREFIX=/etlui
-        - NEXT_PUBLIC_API_URL=http://localhost:8081/etlapi/api
+        - NEXT_PUBLIC_API_URL=http://202.131.115.228:8081/etlapi/api
         - NEXT_PUBLIC_WS_URL=ws://localhost:8081/etlapi/ws
     container_name: etl-ui
     ports:
       - "3001:3001"
     environment:
-      - NEXT_PUBLIC_API_URL=http://localhost:8081/etlapi/api
-      - NEXT_PUBLIC_WS_URL=ws://localhost:8081/etlapi/ws
+      - NEXT_PUBLIC_API_URL=http://202.131.115.228:8081/etlapi/api
+      - NEXT_PUBLIC_WS_URL=ws://202.131.115.228:8081/etlapi/ws
     networks:
       - etl-network
     restart: unless-stopped

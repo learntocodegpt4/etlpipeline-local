@@ -37,7 +37,9 @@ export default function DataPage() {
     paginationModel.pageSize,
     awardFilter || undefined
   );
-
+    const currentTableCount =
+    tables?.find((t: any) => t.table === selectedTable)?.record_count ?? 0;
+  const effectiveTotal = total ?? currentTableCount ?? 0;
   // Generate columns dynamically from data
   const columns: GridColDef[] = data && data.length > 0
     ? Object.keys(data[0]).map((key) => ({
@@ -195,13 +197,13 @@ export default function DataPage() {
           <DataGrid
             rows={filteredData || []}
             columns={columns}
-            rowCount={total || 0}
+            rowCount={effectiveTotal || 0}
             loading={dataLoading}
             pageSizeOptions={[25, 50, 100]}
             paginationModel={paginationModel}
             paginationMode="server"
             onPaginationModelChange={setPaginationModel}
-            getRowId={(row) => row.id}
+            getRowId={(row) => row.id ?? row._id ?? `${selectedTable}-${JSON.stringify(row)}`}
             disableRowSelectionOnClick
           />
         </Paper>

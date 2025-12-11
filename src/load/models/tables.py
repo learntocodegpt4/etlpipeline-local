@@ -22,7 +22,7 @@ Base = declarative_base()
 class Award(Base):
     """Awards table model"""
 
-    __tablename__ = "awards"
+    __tablename__ = "Stg_TblAwards"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     award_id = Column(Integer, nullable=False)
@@ -45,7 +45,7 @@ class Award(Base):
 class Classification(Base):
     """Classifications table model"""
 
-    __tablename__ = "classifications"
+    __tablename__ = "Stg_TblClassifications"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     classification_fixed_id = Column(Integer, nullable=False)
@@ -74,7 +74,7 @@ class Classification(Base):
 class PayRate(Base):
     """Pay rates table model"""
 
-    __tablename__ = "pay_rates"
+    __tablename__ = "Stg_TblPayRates"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     classification_fixed_id = Column(Integer, nullable=False)
@@ -105,7 +105,7 @@ class PayRate(Base):
 class ExpenseAllowance(Base):
     """Expense allowances table model"""
 
-    __tablename__ = "expense_allowances"
+    __tablename__ = "Stg_TblExpenseAllowances"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     expense_allowance_fixed_id = Column(Integer, nullable=False)
@@ -135,7 +135,7 @@ class ExpenseAllowance(Base):
 class WageAllowance(Base):
     """Wage allowances table model"""
 
-    __tablename__ = "wage_allowances"
+    __tablename__ = "Stg_TblWageAllowances"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     wage_allowance_fixed_id = Column(Integer, nullable=False)

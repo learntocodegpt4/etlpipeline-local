@@ -47,4 +47,5 @@ RUN mkdir -p /app/data /app/logs
 EXPOSE 8000
 
 # Default command - run API server
-CMD ["python", "-m", "uvicorn", "src.api.app:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["python", "run.py"]
+#CMD ["python", "-m", "uvicorn", "src.api.app:app", "--host", "0.0.0.0", "--port", "8000"]

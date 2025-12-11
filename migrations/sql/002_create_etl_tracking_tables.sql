@@ -2,8 +2,8 @@
 -- Creates tables for ETL job tracking and logging
 
 -- ETL Job Logs table
-IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='etl_job_logs' AND xtype='U')
-CREATE TABLE etl_job_logs (
+IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='Tbletl_job_logs' AND xtype='U')
+CREATE TABLE Tbletl_job_logs (
     id INT IDENTITY(1,1) PRIMARY KEY,
     job_id NVARCHAR(50) NOT NULL UNIQUE,
     status NVARCHAR(20) NOT NULL,
@@ -18,21 +18,21 @@ CREATE TABLE etl_job_logs (
 );
 GO
 
-IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name='ix_etl_job_logs_job_id' AND object_id = OBJECT_ID('etl_job_logs'))
-CREATE INDEX ix_etl_job_logs_job_id ON etl_job_logs(job_id);
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name='ix_tbletl_job_logs_job_id' AND object_id = OBJECT_ID('Tbletl_job_logs'))
+CREATE INDEX ix_tbletl_job_logs_job_id ON Tbletl_job_logs(job_id);
 GO
 
-IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name='ix_etl_job_logs_status' AND object_id = OBJECT_ID('etl_job_logs'))
-CREATE INDEX ix_etl_job_logs_status ON etl_job_logs(status);
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name='ix_tbletl_job_logs_status' AND object_id = OBJECT_ID('Tbletl_job_logs'))
+CREATE INDEX ix_tbletl_job_logs_status ON Tbletl_job_logs(status);
 GO
 
-IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name='ix_etl_job_logs_status_start' AND object_id = OBJECT_ID('etl_job_logs'))
-CREATE INDEX ix_etl_job_logs_status_start ON etl_job_logs(status, start_time);
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name='ix_tbletl_job_logs_status_start' AND object_id = OBJECT_ID('Tbletl_job_logs'))
+CREATE INDEX ix_tbletl_job_logs_status_start ON Tbletl_job_logs(status, start_time);
 GO
 
 -- ETL Job Details table
-IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='etl_job_details' AND xtype='U')
-CREATE TABLE etl_job_details (
+IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='Tbletl_job_details' AND xtype='U')
+CREATE TABLE Tbletl_job_details (
     id INT IDENTITY(1,1) PRIMARY KEY,
     job_id NVARCHAR(50) NOT NULL,
     step_name NVARCHAR(100) NOT NULL,
@@ -45,12 +45,12 @@ CREATE TABLE etl_job_details (
     error_message NVARCHAR(MAX) NULL,
     details NVARCHAR(MAX) NULL,
     created_at DATETIME2 DEFAULT GETUTCDATE(),
-    CONSTRAINT FK_job_details_job_id FOREIGN KEY (job_id) REFERENCES etl_job_logs(job_id)
+    CONSTRAINT FK_job_details_job_id FOREIGN KEY (job_id) REFERENCES Tbletl_job_logs(job_id)
 );
 GO
 
-IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name='ix_etl_job_details_job_id' AND object_id = OBJECT_ID('etl_job_details'))
-CREATE INDEX ix_etl_job_details_job_id ON etl_job_details(job_id);
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name='ix_tbletl_job_details_job_id' AND object_id = OBJECT_ID('Tbletl_job_details'))
+CREATE INDEX ix_tbletl_job_details_job_id ON Tbletl_job_details(job_id);
 GO
 
 -- Raw API Responses table

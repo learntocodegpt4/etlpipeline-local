@@ -22,7 +22,7 @@ except Exception:
 
 
 DEFAULT_SERVER = "tcp:202.131.115.228,1433"
-TARGET_DB = "etl_pipeline"
+TARGET_DB = "RosteredAIDBDev"
 SQL_FILES = [
     "migrations/sql/001_create_base_tables.sql",
     "migrations/sql/002_create_etl_tracking_tables.sql",

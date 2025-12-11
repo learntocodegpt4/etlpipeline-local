@@ -9,8 +9,8 @@
 -- GO
 
 -- Awards table
-IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='awards' AND xtype='U')
-CREATE TABLE awards (
+IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='Stg_TblAwards' AND xtype='U')
+CREATE TABLE Stg_TblAwards (
     id INT IDENTITY(1,1) PRIMARY KEY,
     award_id INT NOT NULL,
     award_fixed_id INT NOT NULL,
@@ -26,17 +26,17 @@ CREATE TABLE awards (
 );
 GO
 
-IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name='ix_awards_code' AND object_id = OBJECT_ID('awards'))
-CREATE INDEX ix_awards_code ON awards(code);
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name='ix_stg_tblawards_code' AND object_id = OBJECT_ID('Stg_TblAwards'))
+CREATE INDEX ix_stg_tblawards_code ON Stg_TblAwards(code);
 GO
 
-IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name='ix_awards_code_year' AND object_id = OBJECT_ID('awards'))
-CREATE INDEX ix_awards_code_year ON awards(code, published_year);
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name='ix_stg_tblawards_code_year' AND object_id = OBJECT_ID('Stg_TblAwards'))
+CREATE INDEX ix_stg_tblawards_code_year ON Stg_TblAwards(code, published_year);
 GO
 
 -- Classifications table
-IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='classifications' AND xtype='U')
-CREATE TABLE classifications (
+IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='Stg_TblClassifications' AND xtype='U')
+CREATE TABLE Stg_TblClassifications (
     id INT IDENTITY(1,1) PRIMARY KEY,
     classification_fixed_id INT NOT NULL,
     award_code NVARCHAR(50) NOT NULL,
@@ -58,17 +58,17 @@ CREATE TABLE classifications (
 );
 GO
 
-IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name='ix_classifications_award' AND object_id = OBJECT_ID('classifications'))
-CREATE INDEX ix_classifications_award ON classifications(award_code);
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name='ix_stg_tblclassifications_award' AND object_id = OBJECT_ID('Stg_TblClassifications'))
+CREATE INDEX ix_stg_tblclassifications_award ON Stg_TblClassifications(award_code);
 GO
 
-IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name='ix_classifications_award_year' AND object_id = OBJECT_ID('classifications'))
-CREATE INDEX ix_classifications_award_year ON classifications(award_code, published_year);
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name='ix_stg_tblclassifications_award_year' AND object_id = OBJECT_ID('Stg_TblClassifications'))
+CREATE INDEX ix_stg_tblclassifications_award_year ON Stg_TblClassifications(award_code, published_year);
 GO
 
 -- Pay rates table
-IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='pay_rates' AND xtype='U')
-CREATE TABLE pay_rates (
+IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='Stg_TblPayRates' AND xtype='U')
+CREATE TABLE Stg_TblPayRates (
     id INT IDENTITY(1,1) PRIMARY KEY,
     classification_fixed_id INT NOT NULL,
     award_code NVARCHAR(50) NOT NULL,
@@ -92,17 +92,17 @@ CREATE TABLE pay_rates (
 );
 GO
 
-IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name='ix_pay_rates_award' AND object_id = OBJECT_ID('pay_rates'))
-CREATE INDEX ix_pay_rates_award ON pay_rates(award_code);
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name='ix_stg_tblpayrates_award' AND object_id = OBJECT_ID('Stg_TblPayRates'))
+CREATE INDEX ix_stg_tblpayrates_award ON Stg_TblPayRates(award_code);
 GO
 
-IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name='ix_pay_rates_award_year' AND object_id = OBJECT_ID('pay_rates'))
-CREATE INDEX ix_pay_rates_award_year ON pay_rates(award_code, published_year);
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name='ix_stg_tblpayrates_award_year' AND object_id = OBJECT_ID('Stg_TblPayRates'))
+CREATE INDEX ix_stg_tblpayrates_award_year ON Stg_TblPayRates(award_code, published_year);
 GO
 
 -- Expense allowances table
-IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='expense_allowances' AND xtype='U')
-CREATE TABLE expense_allowances (
+IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='Stg_TblExpenseAllowances' AND xtype='U')
+CREATE TABLE Stg_TblExpenseAllowances (
     id INT IDENTITY(1,1) PRIMARY KEY,
     expense_allowance_fixed_id INT NOT NULL,
     award_code NVARCHAR(50) NOT NULL,
@@ -125,17 +125,17 @@ CREATE TABLE expense_allowances (
 );
 GO
 
-IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name='ix_expense_allowances_award' AND object_id = OBJECT_ID('expense_allowances'))
-CREATE INDEX ix_expense_allowances_award ON expense_allowances(award_code);
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name='ix_stg_tblexpenseallowances_award' AND object_id = OBJECT_ID('Stg_TblExpenseAllowances'))
+CREATE INDEX ix_stg_tblexpenseallowances_award ON Stg_TblExpenseAllowances(award_code);
 GO
 
-IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name='ix_expense_allowances_award_year' AND object_id = OBJECT_ID('expense_allowances'))
-CREATE INDEX ix_expense_allowances_award_year ON expense_allowances(award_code, published_year);
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name='ix_stg_tblexpenseallowances_award_year' AND object_id = OBJECT_ID('Stg_TblExpenseAllowances'))
+CREATE INDEX ix_stg_tblexpenseallowances_award_year ON Stg_TblExpenseAllowances(award_code, published_year);
 GO
 
 -- Wage allowances table
-IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='wage_allowances' AND xtype='U')
-CREATE TABLE wage_allowances (
+IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='Stg_TblWageAllowances' AND xtype='U')
+CREATE TABLE Stg_TblWageAllowances (
     id INT IDENTITY(1,1) PRIMARY KEY,
     wage_allowance_fixed_id INT NOT NULL,
     award_code NVARCHAR(50) NOT NULL,
@@ -159,12 +159,12 @@ CREATE TABLE wage_allowances (
 );
 GO
 
-IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name='ix_wage_allowances_award' AND object_id = OBJECT_ID('wage_allowances'))
-CREATE INDEX ix_wage_allowances_award ON wage_allowances(award_code);
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name='ix_stg_tblwageallowances_award' AND object_id = OBJECT_ID('Stg_TblWageAllowances'))
+CREATE INDEX ix_stg_tblwageallowances_award ON Stg_TblWageAllowances(award_code);
 GO
 
-IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name='ix_wage_allowances_award_year' AND object_id = OBJECT_ID('wage_allowances'))
-CREATE INDEX ix_wage_allowances_award_year ON wage_allowances(award_code, published_year);
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name='ix_stg_tblwageallowances_award_year' AND object_id = OBJECT_ID('Stg_TblWageAllowances'))
+CREATE INDEX ix_stg_tblwageallowances_award_year ON Stg_TblWageAllowances(award_code, published_year);
 GO
 
 PRINT 'Base tables created successfully';

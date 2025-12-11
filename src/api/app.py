@@ -24,39 +24,84 @@ scheduler: Scheduler | None = None
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
-    """Application lifespan events"""
+    """Startup and shutdown events"""
     global state_manager, scheduler
 
     settings = get_settings()
 
-    # Setup logging
+    # STARTUP
+    logger.info("===== STARTUP: Initializing application =====")
+    
     setup_logging(
         log_level=settings.log_level,
         log_file=settings.log_file_path,
     )
 
-    # Initialize state manager
-    state_manager = StateManager()
-    await state_manager.initialize()
+    try:
+        state_manager = StateManager()
+        await state_manager.initialize()
+        logger.info("✓ StateManager initialized")
 
-    # Initialize scheduler
-    scheduler = Scheduler()
-    scheduler.set_job_function(run_etl_pipeline)
+        scheduler = Scheduler()
+        scheduler.set_job_function(run_etl_pipeline)
+        logger.info("✓ Scheduler initialized")
 
-    if settings.etl_schedule_enabled:
-        scheduler.add_cron_job()
-        scheduler.start()
-        logger.info("etl_scheduler_started")
+        if settings.etl_schedule_enabled:
+            scheduler.add_cron_job()
+            scheduler.start()
+            logger.info("✓ ETL scheduler started")
 
-    logger.info("api_server_started")
+        logger.info("===== APPLICATION READY =====")
+
+    except Exception as e:
+        logger.error(f"Failed to initialize: {e}", exc_info=True)
+        raise
 
     yield
 
-    # Cleanup
-    if scheduler and scheduler.is_running:
-        scheduler.stop()
+    # SHUTDOWN
+    logger.info("===== SHUTDOWN: Cleanup =====")
+    try:
+        if scheduler and scheduler.is_running:
+            scheduler.stop()
+        logger.info("===== APPLICATION STOPPED =====")
+    except Exception as e:
+        logger.error(f"Error during shutdown: {e}", exc_info=True)
 
-    logger.info("api_server_stopped")
+# async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+#     """Application lifespan events"""
+#     global state_manager, scheduler
+
+#     settings = get_settings()
+
+#     # Setup logging
+#     setup_logging(
+#         log_level=settings.log_level,
+#         log_file=settings.log_file_path,
+#     )
+
+#     # Initialize state manager
+#     state_manager = StateManager()
+#     await state_manager.initialize()
+
+#     # Initialize scheduler
+#     scheduler = Scheduler()
+#     scheduler.set_job_function(run_etl_pipeline)
+
+#     if settings.etl_schedule_enabled:
+#         scheduler.add_cron_job()
+#         scheduler.start()
+#         logger.info("etl_scheduler_started")
+
+#     logger.info("api_server_started")
+
+#     yield
+
+#     # Cleanup
+#     if scheduler and scheduler.is_running:
+#         scheduler.stop()
+
+#     logger.info("api_server_stopped")
 
 
 # Create FastAPI app
@@ -118,16 +163,16 @@ def get_scheduler() -> Scheduler:
     return scheduler
 
 
-def run_server() -> None:
-    """Run the API server"""
-    settings = get_settings()
-    uvicorn.run(
-        "src.api.app:app",
-        host=settings.api_host,
-        port=settings.api_port,
-        reload=False,
-    )
+# def run_server() -> None:
+#     """Run the API server"""
+#     settings = get_settings()
+#     uvicorn.run(
+#         "src.api.app:app",
+#         host=settings.api_host,
+#         port=settings.api_port,
+#         reload=False,
+#     )
 
 
-if __name__ == "__main__":
-    run_server()
+# if __name__ == "__main__":
+#     run_server()

@@ -43,7 +43,7 @@ class Settings(BaseSettings):
         description="MS SQL Server port (string to tolerate host:port env values)",
     )
     mssql_database: str = Field(
-        default="etl_pipeline",
+        default="RosteredAIDBDev",
         description="MS SQL database name",
     )
     mssql_user: str = Field(

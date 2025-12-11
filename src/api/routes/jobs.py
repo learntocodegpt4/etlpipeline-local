@@ -4,7 +4,7 @@ import asyncio
 from typing import Any, Dict, List, Optional
 from datetime import datetime
 
-from fastapi import APIRouter, HTTPException, BackgroundTasks, Query
+from fastapi import APIRouter, HTTPException, BackgroundTasks, Query, Depends
 from pydantic import BaseModel
 
 from src.orchestrator.state_manager import StateManager
@@ -77,9 +77,10 @@ async def list_jobs(
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
     status: Optional[str] = None,
+    sm: StateManager = Depends(get_state_manager),
 ) -> JobListResponse:
     """List all ETL jobs with pagination"""
-    sm = get_state_manager()
+    # sm = Depends(get_state_manager)
     offset = (page - 1) * page_size
 
     jobs = await sm.list_jobs(limit=page_size, offset=offset, status=status)
@@ -94,9 +95,9 @@ async def list_jobs(
 
 
 @router.get("/jobs/{job_id}", response_model=Dict[str, Any])
-async def get_job(job_id: str) -> Dict[str, Any]:
+async def get_job(job_id: str,  sm: StateManager = Depends(get_state_manager)) -> Dict[str, Any]:
     """Get details of a specific job"""
-    sm = get_state_manager()
+    # sm = Depends(get_state_manager)
     job = await sm.get_job(job_id)
 
     if not job:
@@ -112,9 +113,9 @@ async def get_job(job_id: str) -> Dict[str, Any]:
 
 
 @router.get("/jobs/{job_id}/logs", response_model=List[JobStepResponse])
-async def get_job_logs(job_id: str) -> List[JobStepResponse]:
+async def get_job_logs(job_id: str, sm: StateManager = Depends(get_state_manager)) -> List[JobStepResponse]:
     """Get logs for a specific job"""
-    sm = get_state_manager()
+    # sm = Depends(get_state_manager)
     job = await sm.get_job(job_id)
 
     if not job:
@@ -138,12 +139,13 @@ async def _run_pipeline_task(
 async def trigger_job(
     request: TriggerRequest,
     background_tasks: BackgroundTasks,
+     sm: StateManager = Depends(get_state_manager)
 ) -> TriggerResponse:
     """Manually trigger ETL pipeline"""
     import uuid
 
     job_id = str(uuid.uuid4())
-    sm = get_state_manager()
+    # sm = Depends(get_state_manager)
 
     # Create job record first
     await sm.create_job(job_id)
@@ -160,7 +162,7 @@ async def trigger_job(
 
 
 @router.post("/jobs/trigger_sync")
-async def trigger_job_sync(request: TriggerRequest) -> Dict[str, Any]:
+async def trigger_job_sync(request: TriggerRequest,  sm: StateManager = Depends(get_state_manager)) -> Dict[str, Any]:
     """Synchronously run the ETL pipeline and return the result.
 
     This endpoint is intended for manual testing via Swagger/UI. It will run
@@ -169,7 +171,7 @@ async def trigger_job_sync(request: TriggerRequest) -> Dict[str, Any]:
     import uuid
 
     job_id = str(uuid.uuid4())
-    sm = get_state_manager()
+    #sm = Depends(get_state_manager)
 
     logger.info("job_triggered_sync", job_id=job_id)
 
@@ -190,23 +192,23 @@ async def trigger_job_sync(request: TriggerRequest) -> Dict[str, Any]:
 
 
 @router.get("/jobs/stats/summary")
-async def get_job_stats(days: int = Query(7, ge=1, le=30)) -> Dict[str, Any]:
+async def get_job_stats(days: int = Query(7, ge=1, le=30), sm: StateManager = Depends(get_state_manager)) -> Dict[str, Any]:
     """Get job statistics summary"""
-    sm = get_state_manager()
+    # sm = Depends(get_state_manager)
     return await sm.get_recent_job_stats(days=days)
 
 
 @router.post("/jobs/cleanup_pending")
-async def cleanup_pending_jobs(age_seconds: Optional[int] = None) -> Dict[str, Any]:
+async def cleanup_pending_jobs(age_seconds: Optional[int] = None, sm: StateManager = Depends(get_state_manager)) -> Dict[str, Any]:
     """Mark pending jobs as failed. Optionally only those older than `age_seconds`."""
-    sm = get_state_manager()
+    # sm = Depends(get_state_manager)
     count = await sm.cleanup_pending_jobs(older_than_seconds=age_seconds)
     return {"marked_failed": count}
 
 
 @router.delete("/jobs/{job_id}")
-async def delete_job(job_id: str) -> Dict[str, Any]:
+async def delete_job(job_id: str, sm: StateManager = Depends(get_state_manager)) -> Dict[str, Any]:
     """Delete a job and its steps from the state DB."""
-    sm = get_state_manager()
+    # sm = Depends(get_state_manager)
     await sm.delete_job(job_id)
     return {"deleted": job_id}

@@ -1,8 +1,8 @@
 -- Migration: 003_create_migration_history.sql
 -- Creates migration tracking table
 
-IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='migration_history' AND xtype='U')
-CREATE TABLE migration_history (
+IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='Tblmigration_history' AND xtype='U')
+CREATE TABLE Tblmigration_history (
     id INT IDENTITY(1,1) PRIMARY KEY,
     migration_name NVARCHAR(200) NOT NULL UNIQUE,
     applied_at DATETIME2 DEFAULT GETUTCDATE(),
