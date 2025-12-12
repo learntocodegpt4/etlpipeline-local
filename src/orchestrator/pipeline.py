@@ -82,31 +82,31 @@ class ETLPipeline:
         # Load steps
         pipeline.add_step(BulkLoader(
             source_key="awards_transformer",
-            table_name="awards",
+            table_name="Stg_TblAwards",
             key_columns=["award_id", "published_year"],
             connector=self.connector,
         ))
         pipeline.add_step(BulkLoader(
             source_key="classifications_transformer",
-            table_name="classifications",
+            table_name="Stg_TblClassifications",
             key_columns=["classification_fixed_id", "award_code", "published_year"],
             connector=self.connector,
         ))
         pipeline.add_step(BulkLoader(
             source_key="pay_rates_transformer",
-            table_name="pay_rates",
+            table_name="Stg_TblPayRates",
             key_columns=["classification_fixed_id", "award_code", "published_year"],
             connector=self.connector,
         ))
         pipeline.add_step(BulkLoader(
             source_key="expense_allowances_transformer",
-            table_name="expense_allowances",
+            table_name="Stg_TblExpenseAllowances",
             key_columns=["expense_allowance_fixed_id", "award_code", "published_year"],
             connector=self.connector,
         ))
         pipeline.add_step(BulkLoader(
             source_key="wage_allowances_transformer",
-            table_name="wage_allowances",
+            table_name="Stg_TblWageAllowances",
             key_columns=["wage_allowance_fixed_id", "award_code", "published_year"],
             connector=self.connector,
         ))

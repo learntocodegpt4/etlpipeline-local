@@ -1,5 +1,5 @@
 import sqlite3, json, pathlib
-db = pathlib.Path('../data/state.db')
+db = pathlib.Path('../data/etl_state.db')
 print('state DB exists:', db.exists(), 'path=', db)
 if not db.exists():
     raise SystemExit('state DB not found')

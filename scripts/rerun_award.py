@@ -26,7 +26,7 @@ def delete_previous_jobs_for_award(award_code: str) -> None:
     """Best-effort: remove job entries that mention the award_code in job_steps.details or metadata.
     This uses the local SQLite state DB.
     """
-    db = "data/state.db"
+    db = "data/etl_state.db"
     conn = sqlite3.connect(db)
     cur = conn.cursor()
     # Try to find job_ids with award_code in job_steps.details
@@ -44,7 +44,7 @@ def delete_previous_jobs_for_award(award_code: str) -> None:
         conn.commit()
         print("Deleted previous job records (best-effort).")
     except Exception as e:
-        print("Error while cleaning state DB:", e)
+        print("Error while cleaning etl_state DB:", e)
     finally:
         conn.close()
 

@@ -22,7 +22,7 @@ import { DataGrid, GridColDef, GridPaginationModel } from '@mui/x-data-grid';
 import { useTables, useDataPreview } from '@/lib/api';
 
 export default function DataPage() {
-  const [selectedTable, setSelectedTable] = useState('awards');
+  const [selectedTable, setSelectedTable] = useState('Stg_TblAwards');
   const [awardFilter, setAwardFilter] = useState('');
   const [nameFilter, setNameFilter] = useState('');
   const [paginationModel, setPaginationModel] = useState<GridPaginationModel>({

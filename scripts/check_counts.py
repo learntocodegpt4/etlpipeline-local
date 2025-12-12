@@ -35,11 +35,11 @@ def main():
 
     curs = conn.cursor()
     tables = [
-        'awards',
-        'classifications',
-        'pay_rates',
-        'expense_allowances',
-        'wage_allowances',
+        'Stg_TblAwards',
+        'Stg_TblClassifications',
+        'Stg_TblPayRates',
+        'Stg_TblExpenseAllowances',
+        'Stg_TblWageAllowances',
         'raw_api_responses',
     ]
     for t in tables:

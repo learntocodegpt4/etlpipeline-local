@@ -38,7 +38,7 @@ class Award(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     __table_args__ = (
-        Index("ix_awards_code_year", "code", "published_year"),
+        Index("ix_stg_tblawards_code_year", "code", "published_year"),
     )
 
 
@@ -67,7 +67,7 @@ class Classification(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     __table_args__ = (
-        Index("ix_classifications_award_year", "award_code", "published_year"),
+        Index("ix_stg_tblclassifications_award_year", "award_code", "published_year"),
     )
 
 
@@ -98,7 +98,7 @@ class PayRate(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     __table_args__ = (
-        Index("ix_pay_rates_award_year", "award_code", "published_year"),
+        Index("ix_stg_tblpayrates_award_year", "award_code", "published_year"),
     )
 
 
@@ -128,7 +128,7 @@ class ExpenseAllowance(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     __table_args__ = (
-        Index("ix_expense_allowances_award_year", "award_code", "published_year"),
+        Index("ix_stg_tblexpenseallowances_award_year", "award_code", "published_year"),
     )
 
 
@@ -159,14 +159,14 @@ class WageAllowance(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     __table_args__ = (
-        Index("ix_wage_allowances_award_year", "award_code", "published_year"),
+        Index("ix_stg_tblwageallowances_award_year", "award_code", "published_year"),
     )
 
 
 class ETLJobLog(Base):
     """ETL job execution history"""
 
-    __tablename__ = "etl_job_logs"
+    __tablename__ = "Tbletl_job_logs"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     job_id = Column(String(50), nullable=False, unique=True, index=True)
@@ -184,17 +184,17 @@ class ETLJobLog(Base):
     details = relationship("ETLJobDetail", back_populates="job", cascade="all, delete-orphan")
 
     __table_args__ = (
-        Index("ix_etl_job_logs_status_start", "status", "start_time"),
+        Index("ix_tbletl_job_logs_status_start", "status", "start_time"),
     )
 
 
 class ETLJobDetail(Base):
     """Detailed step-by-step ETL job logs"""
 
-    __tablename__ = "etl_job_details"
+    __tablename__ = "Tbletl_job_details"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    job_id = Column(String(50), ForeignKey("etl_job_logs.job_id"), nullable=False, index=True)
+    job_id = Column(String(50), ForeignKey("Tbletl_job_logs.job_id"), nullable=False, index=True)
     step_name = Column(String(100), nullable=False)
     status = Column(String(20), nullable=False)
     start_time = Column(DateTime, nullable=True)

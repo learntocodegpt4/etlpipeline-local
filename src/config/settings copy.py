@@ -61,7 +61,7 @@ class Settings(BaseSettings):
 
     # SQLite for state management
     sqlite_database_path: str = Field(
-        default="./data/etl_state.db",
+        default="./data/state.db",
         description="Path to SQLite database for state management",
     )
 

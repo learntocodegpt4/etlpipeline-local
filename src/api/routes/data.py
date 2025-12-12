@@ -14,11 +14,11 @@ router = APIRouter()
 
 # Allowed tables for preview
 ALLOWED_TABLES = [
-    "awards",
-    "classifications",
-    "pay_rates",
-    "expense_allowances",
-    "wage_allowances",
+    "Stg_TblAwards",
+    "Stg_TblClassifications",
+    "Stg_TblPayRates",
+    "Stg_TblExpenseAllowances",
+    "Stg_TblWageAllowances",
 ]
 
 
@@ -54,7 +54,7 @@ async def preview_data(
         where_clause = ""
         params: Dict[str, Any] = {"limit": page_size, "offset": offset}
 
-        if award_code and table != "awards":
+        if award_code and table != "Stg_TblAwards":
             where_clause = "WHERE award_code = :award_code"
             params["award_code"] = award_code
 
@@ -119,13 +119,13 @@ async def list_awards(
         # Get distinct awards
         sql = """
             SELECT DISTINCT code, name
-            FROM awards
+            FROM Stg_TblAwards
             ORDER BY code
             OFFSET :offset ROWS FETCH NEXT :limit ROWS ONLY
         """
         data = connector.execute_query(sql, {"limit": page_size, "offset": offset})
 
-        count_sql = "SELECT COUNT(DISTINCT code) as cnt FROM awards"
+        count_sql = "SELECT COUNT(DISTINCT code) as cnt FROM Stg_TblAwards"
         count_result = connector.execute_query(count_sql)
         total = count_result[0]["cnt"] if count_result else 0
 
@@ -140,5 +140,5 @@ async def list_awards(
         logger.error("list_awards_error", error=str(e))
         raise HTTPException(
             status_code=500,
-            detail=f"Error fetching awards: {str(e)}",
+            detail=f"Error fetching Stg_TblAwards: {str(e)}",
         )
