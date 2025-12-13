@@ -1,0 +1,75 @@
+services:
+  migrations:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: etl-migrations
+    command: python migrations/run_migrations.py
+    environment:
+      - MSSQL_HOST=host.docker.internal
+      - MSSQL_PORT=1433
+      - MSSQL_DATABASE=RosteredAIDBDev
+      - MSSQL_USER=sa
+      - MSSQL_PASSWORD=${MSSQL_PASSWORD:-Piyush@23D!gita1}
+      - PYTHONUNBUFFERED=1
+    volumes:
+      - ../src:/app/src
+      - ../migrations:/app/migrations
+      - ../logs:/app/logs
+    networks:
+      - etl-network
+    restart: "no"
+
+  # Python FastAPI Backend
+  api:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: etl-api
+    ports:
+      - "8000:8000"
+    environment:
+      - MSSQL_HOST=host.docker.internal
+      - MSSQL_PORT=1433
+      - MSSQL_DATABASE=RosteredAIDBDev
+      - MSSQL_USER=sa
+      - MSSQL_PASSWORD=${MSSQL_PASSWORD:-Piyush@23D!gita1}
+      - PYTHONUNBUFFERED=1
+      - ROOT_PATH=/etlapi
+    volumes:
+      - ../src:/app/src
+      - ../logs:/app/logs
+      - ../data:/app/data
+    networks:
+      - etl-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/status"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    restart: unless-stopped
+
+  # Next.js UI
+  ui:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.ui
+      args:
+        - NEXT_PUBLIC_BASE_PATH=/etlui
+        - NEXT_PUBLIC_ASSET_PREFIX=/etlui
+        - NEXT_PUBLIC_API_URL=http://202.131.115.228:8081/etlapi/api
+        - NEXT_PUBLIC_WS_URL=ws://202.131.115.228:8081/etlapi/ws
+    container_name: etl-ui
+    ports:
+      - "3001:3001"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://202.131.115.228:8081/etlapi/api
+      - NEXT_PUBLIC_WS_URL=ws://202.131.115.228:8081/etlapi/ws
+    networks:
+      - etl-network
+    restart: unless-stopped
+
+networks:
+  etl-network:
+    driver: bridge

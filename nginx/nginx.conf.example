@@ -1,0 +1,90 @@
+# Example Nginx Configuration for ETL Pipeline
+# Copy this file to C:\nginx\conf\nginx.conf (Windows) or /etc/nginx/nginx.conf (Linux)
+
+worker_processes 1;
+
+events {
+    worker_connections 1024;
+}
+
+http {
+    include       mime.types;
+    default_type  application/octet-stream;
+    
+    # Logging
+    access_log logs/access.log;
+    error_log logs/error.log;
+    
+    sendfile on;
+    keepalive_timeout 65;
+    
+    # Gzip compression
+    gzip on;
+    gzip_types text/plain text/css application/json application/javascript text/xml application/xml;
+    gzip_min_length 1000;
+    
+    # Upstream servers
+    upstream etl_api {
+        server 127.0.0.1:8000;
+        keepalive 32;
+    }
+
+    upstream etl_ui {
+        server 127.0.0.1:3000;
+        keepalive 32;
+    }
+
+    server {
+        listen 8081;
+        server_name localhost;
+        
+        # Buffer settings for large responses
+        proxy_buffer_size 128k;
+        proxy_buffers 4 256k;
+        proxy_busy_buffers_size 256k;
+        
+        # Client body size limit
+        client_max_body_size 10M;
+
+        # API routes
+        location /api/ {
+            proxy_pass http://etl_api/api/;
+            proxy_http_version 1.1;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+            proxy_connect_timeout 60s;
+            proxy_send_timeout 60s;
+            proxy_read_timeout 60s;
+        }
+
+        # WebSocket routes
+        location /ws/ {
+            proxy_pass http://etl_api/ws/;
+            proxy_http_version 1.1;
+            proxy_set_header Upgrade $http_upgrade;
+            proxy_set_header Connection "upgrade";
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_read_timeout 86400;
+        }
+
+        # UI routes (catch-all)
+        location / {
+            proxy_pass http://etl_ui/;
+            proxy_http_version 1.1;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+        }
+        
+        # Health check endpoint
+        location /nginx-health {
+            return 200 "OK";
+            add_header Content-Type text/plain;
+        }
+    }
+}

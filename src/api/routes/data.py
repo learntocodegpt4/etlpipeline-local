@@ -1,0 +1,157 @@
+"""Data preview API routes"""
+
+from typing import Any, Dict, List, Optional
+
+from fastapi import APIRouter, HTTPException, Query
+from pydantic import BaseModel
+
+from src.load.sql_connector import get_connector
+from src.utils.logging import get_logger
+
+logger = get_logger(__name__)
+
+router = APIRouter()
+
+# Allowed tables for preview
+ALLOWED_TABLES = [
+    "Stg_TblAwards",
+    "Stg_TblClassifications",
+    "Stg_TblPayRates",
+    "Stg_TblExpenseAllowances",
+    "Stg_TblWageAllowances",
+]
+
+
+class DataPreviewResponse(BaseModel):
+    """Response model for data preview"""
+
+    table: str
+    total: int
+    page: int
+    page_size: int
+    data: List[Dict[str, Any]]
+
+
+@router.get("/data/preview/{table}", response_model=DataPreviewResponse)
+async def preview_data(
+    table: str,
+    page: int = Query(1, ge=1),
+    page_size: int = Query(50, ge=1, le=500),
+    award_code: Optional[str] = None,
+    name: Optional[str] = None,
+    code: Optional[str] = None,
+) -> DataPreviewResponse:
+    """Preview data from a table with server-side filtering"""
+    if table not in ALLOWED_TABLES:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid table. Allowed: {ALLOWED_TABLES}",
+        )
+
+    connector = get_connector()
+    offset = (page - 1) * page_size
+
+    try:
+        # Build dynamic WHERE clause from filter parameters
+        where_conditions = []
+        params: Dict[str, Any] = {"limit": page_size, "offset": offset}
+
+        if award_code:
+            where_conditions.append("award_code = @award_code")
+            params["award_code"] = award_code
+
+        if code:
+            where_conditions.append("code = @code")
+            params["code"] = code
+
+        if name:
+            where_conditions.append("name LIKE @name")
+            params["name"] = f"%{name}%"
+
+        where_clause = ""
+        if where_conditions:
+            where_clause = "WHERE " + " AND ".join(where_conditions)
+
+        # Get total count
+        count_sql = f"SELECT COUNT(*) as cnt FROM {table} {where_clause}"
+        count_result = connector.execute_query(count_sql, params)
+        total_count = count_result[0]["cnt"] if count_result else 0
+
+        # Get data using OFFSET/FETCH for reliable server-side pagination
+        order_by = "id"
+        data_sql = f"SELECT * FROM {table} {where_clause} ORDER BY {order_by} OFFSET :offset ROWS FETCH NEXT :limit ROWS ONLY"
+        data = connector.execute_query(data_sql, params)
+
+        # Remove row number from results
+        for row in data:
+            row.pop("rn", None)
+
+        return DataPreviewResponse(
+            table=table,
+            total=total_count,
+            page=page,
+            page_size=page_size,
+            data=data,
+        )
+
+    except Exception as e:
+        logger.error("data_preview_error", table=table, error=str(e))
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error fetching data: {str(e)}",
+        )
+
+
+@router.get("/data/tables")
+async def list_tables() -> Dict[str, Any]:
+    """List available tables and their record counts"""
+    connector = get_connector()
+
+    tables_info = []
+    for table in ALLOWED_TABLES:
+        try:
+            result = connector.execute_query(f"SELECT COUNT(*) as cnt FROM {table}")
+            count = result[0]["cnt"] if result else 0
+            tables_info.append({"table": table, "record_count": count})
+        except Exception as e:
+            tables_info.append({"table": table, "record_count": 0, "error": str(e)})
+
+    return {"tables": tables_info}
+
+
+@router.get("/data/awards")
+async def list_awards(
+    page: int = Query(1, ge=1),
+    page_size: int = Query(100, ge=1, le=500),
+) -> Dict[str, Any]:
+    """List all awards"""
+    connector = get_connector()
+    offset = (page - 1) * page_size
+
+    try:
+        # Get distinct awards
+        sql = """
+            SELECT DISTINCT code, name
+            FROM Stg_TblAwards
+            ORDER BY code
+            OFFSET :offset ROWS FETCH NEXT :limit ROWS ONLY
+        """
+        data = connector.execute_query(sql, {"limit": page_size, "offset": offset})
+
+        count_sql = "SELECT COUNT(DISTINCT code) as cnt FROM Stg_TblAwards"
+        count_result = connector.execute_query(count_sql)
+        total = count_result[0]["cnt"] if count_result else 0
+
+        return {
+            "awards": data,
+            "total": total,
+            "page": page,
+            "page_size": page_size,
+        }
+
+    except Exception as e:
+        logger.error("list_awards_error", error=str(e))
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error fetching Stg_TblAwards: {str(e)}",
+        )

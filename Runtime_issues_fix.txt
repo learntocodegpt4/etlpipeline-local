@@ -1,0 +1,36 @@
+sqlcmd -S tcp:202.131.115.228,1433 -U sa -P 'Piyush@23D!gita1' -Q "IF DB_ID('etl_pipeline') IS NULL CREATE DATABASE [etl_pipeline];
+
+tcp:202.131.115.228,1433
+Piyush@23D!gita1
+
+above didn't work using sqlcmd so done by below for migrations run
+.\venv\Scripts\Activate.ps1
+pip install pyodbc
+python .\migrations\run_migrations.py
+
+changes 
+
+---connection failures---
+Thanks — good evidence. You can connect with pyodbc when using the pyodbc-style SERVER (your testconn.py), so the server is reachable. The remaining problem is authentication: SQLAlchemy/pyodbc
+ used inside the app is sending credentials differently, so SQL Server rejects the login (18456).
+
+ Apply this now (copy/paste the exact commands)
+
+Make sure .env contains raw credentials (no percent-encoding) and remove the single long MSSQL_CONNECTION_STRING line so our code builds the DSN from parts:
+Edit .env (example):
+# comment out the full connection string if present
+# MSSQL_CONNECTION_STRING=...
+
+MSSQL_HOST=202.131.115.228
+MSSQL_PORT=1433
+MSSQL_DATABASE=etl_pipeline
+MSSQL_USER=sa
+MSSQL_PASSWORD=Piyush@23D!g!tal   # <-- raw password, not encoded
+If you prefer tcp: in the host (it worked in testconn.py) set:
+MSSQL_HOST=tcp:202.131.115.228,1433
+MSSQL_PORT=1433   # optional when embedded in host
+
+Immediately after restart, paste the masked DSN log line I added earlier. It will look like one of:
+mssql+pyodbc:///?odbc_connect=DRIVER%3D%7BODBC+Driver+17+for+SQL+Server%7D%3B...
+or
+mssql+pyodbc://sa:***@202.131.115.228:1433/etl_pipeline?driver=...

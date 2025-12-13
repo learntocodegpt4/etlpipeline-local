@@ -1,0 +1,171 @@
+-- Migration: 001_create_base_tables.sql
+-- Creates the base database tables for ETL Pipeline
+-- Run against MS SQL Server
+
+-- Create database if not exists (run separately with admin privileges)
+-- CREATE DATABASE etl_pipeline;
+-- GO
+-- USE etl_pipeline;
+-- GO
+
+-- Awards table
+IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='Stg_TblAwards' AND xtype='U')
+CREATE TABLE Stg_TblAwards (
+    id INT IDENTITY(1,1) PRIMARY KEY,
+    award_id INT NOT NULL,
+    award_fixed_id INT NOT NULL,
+    code NVARCHAR(50) NOT NULL,
+    name NVARCHAR(500) NULL,
+    award_operative_from DATETIME2 NULL,
+    award_operative_to DATETIME2 NULL,
+    version_number INT NULL,
+    last_modified_datetime DATETIME2 NULL,
+    published_year INT NULL,
+    created_at DATETIME2 DEFAULT GETUTCDATE(),
+    updated_at DATETIME2 DEFAULT GETUTCDATE()
+);
+GO
+
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name='ix_stg_tblawards_code' AND object_id = OBJECT_ID('Stg_TblAwards'))
+CREATE INDEX ix_stg_tblawards_code ON Stg_TblAwards(code);
+GO
+
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name='ix_stg_tblawards_code_year' AND object_id = OBJECT_ID('Stg_TblAwards'))
+CREATE INDEX ix_stg_tblawards_code_year ON Stg_TblAwards(code, published_year);
+GO
+
+-- Classifications table
+IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='Stg_TblClassifications' AND xtype='U')
+CREATE TABLE Stg_TblClassifications (
+    id INT IDENTITY(1,1) PRIMARY KEY,
+    classification_fixed_id INT NOT NULL,
+    award_code NVARCHAR(50) NOT NULL,
+    clause_fixed_id INT NULL,
+    clauses NVARCHAR(200) NULL,
+    clause_description NVARCHAR(1000) NULL,
+    parent_classification_name NVARCHAR(500) NULL,
+    classification NVARCHAR(500) NULL,
+    classification_level INT NULL,
+    next_down_classification_fixed_id INT NULL,
+    next_up_classification_fixed_id INT NULL,
+    operative_from DATETIME2 NULL,
+    operative_to DATETIME2 NULL,
+    version_number INT NULL,
+    last_modified_datetime DATETIME2 NULL,
+    published_year INT NULL,
+    created_at DATETIME2 DEFAULT GETUTCDATE(),
+    updated_at DATETIME2 DEFAULT GETUTCDATE()
+);
+GO
+
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name='ix_stg_tblclassifications_award' AND object_id = OBJECT_ID('Stg_TblClassifications'))
+CREATE INDEX ix_stg_tblclassifications_award ON Stg_TblClassifications(award_code);
+GO
+
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name='ix_stg_tblclassifications_award_year' AND object_id = OBJECT_ID('Stg_TblClassifications'))
+CREATE INDEX ix_stg_tblclassifications_award_year ON Stg_TblClassifications(award_code, published_year);
+GO
+
+-- Pay rates table
+IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='Stg_TblPayRates' AND xtype='U')
+CREATE TABLE Stg_TblPayRates (
+    id INT IDENTITY(1,1) PRIMARY KEY,
+    classification_fixed_id INT NOT NULL,
+    award_code NVARCHAR(50) NOT NULL,
+    base_pay_rate_id NVARCHAR(50) NULL,
+    base_rate_type NVARCHAR(50) NULL,
+    base_rate DECIMAL(18,4) NULL,
+    calculated_pay_rate_id NVARCHAR(50) NULL,
+    calculated_rate_type NVARCHAR(50) NULL,
+    calculated_rate DECIMAL(18,4) NULL,
+    parent_classification_name NVARCHAR(500) NULL,
+    classification NVARCHAR(500) NULL,
+    classification_level INT NULL,
+    employee_rate_type_code NVARCHAR(20) NULL,
+    operative_from DATETIME2 NULL,
+    operative_to DATETIME2 NULL,
+    version_number INT NULL,
+    last_modified_datetime DATETIME2 NULL,
+    published_year INT NULL,
+    created_at DATETIME2 DEFAULT GETUTCDATE(),
+    updated_at DATETIME2 DEFAULT GETUTCDATE()
+);
+GO
+
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name='ix_stg_tblpayrates_award' AND object_id = OBJECT_ID('Stg_TblPayRates'))
+CREATE INDEX ix_stg_tblpayrates_award ON Stg_TblPayRates(award_code);
+GO
+
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name='ix_stg_tblpayrates_award_year' AND object_id = OBJECT_ID('Stg_TblPayRates'))
+CREATE INDEX ix_stg_tblpayrates_award_year ON Stg_TblPayRates(award_code, published_year);
+GO
+
+-- Expense allowances table
+IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='Stg_TblExpenseAllowances' AND xtype='U')
+CREATE TABLE Stg_TblExpenseAllowances (
+    id INT IDENTITY(1,1) PRIMARY KEY,
+    expense_allowance_fixed_id INT NOT NULL,
+    award_code NVARCHAR(50) NOT NULL,
+    clause_fixed_id INT NULL,
+    clauses NVARCHAR(200) NULL,
+    parent_allowance NVARCHAR(500) NULL,
+    allowance NVARCHAR(500) NULL,
+    is_all_purpose BIT NULL,
+    allowance_amount DECIMAL(18,4) NULL,
+    payment_frequency NVARCHAR(50) NULL,
+    last_adjusted_year INT NULL,
+    cpi_quarter_last_adjusted NVARCHAR(50) NULL,
+    operative_from DATETIME2 NULL,
+    operative_to DATETIME2 NULL,
+    version_number INT NULL,
+    last_modified_datetime DATETIME2 NULL,
+    published_year INT NULL,
+    created_at DATETIME2 DEFAULT GETUTCDATE(),
+    updated_at DATETIME2 DEFAULT GETUTCDATE()
+);
+GO
+
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name='ix_stg_tblexpenseallowances_award' AND object_id = OBJECT_ID('Stg_TblExpenseAllowances'))
+CREATE INDEX ix_stg_tblexpenseallowances_award ON Stg_TblExpenseAllowances(award_code);
+GO
+
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name='ix_stg_tblexpenseallowances_award_year' AND object_id = OBJECT_ID('Stg_TblExpenseAllowances'))
+CREATE INDEX ix_stg_tblexpenseallowances_award_year ON Stg_TblExpenseAllowances(award_code, published_year);
+GO
+
+-- Wage allowances table
+IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='Stg_TblWageAllowances' AND xtype='U')
+CREATE TABLE Stg_TblWageAllowances (
+    id INT IDENTITY(1,1) PRIMARY KEY,
+    wage_allowance_fixed_id INT NOT NULL,
+    award_code NVARCHAR(50) NOT NULL,
+    clause_fixed_id INT NULL,
+    clauses NVARCHAR(200) NULL,
+    parent_allowance NVARCHAR(500) NULL,
+    allowance NVARCHAR(500) NULL,
+    is_all_purpose BIT NULL,
+    rate DECIMAL(18,4) NULL,
+    rate_unit NVARCHAR(50) NULL,
+    base_pay_rate_id NVARCHAR(50) NULL,
+    allowance_amount DECIMAL(18,4) NULL,
+    payment_frequency NVARCHAR(50) NULL,
+    operative_from DATETIME2 NULL,
+    operative_to DATETIME2 NULL,
+    version_number INT NULL,
+    last_modified_datetime DATETIME2 NULL,
+    published_year INT NULL,
+    created_at DATETIME2 DEFAULT GETUTCDATE(),
+    updated_at DATETIME2 DEFAULT GETUTCDATE()
+);
+GO
+
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name='ix_stg_tblwageallowances_award' AND object_id = OBJECT_ID('Stg_TblWageAllowances'))
+CREATE INDEX ix_stg_tblwageallowances_award ON Stg_TblWageAllowances(award_code);
+GO
+
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name='ix_stg_tblwageallowances_award_year' AND object_id = OBJECT_ID('Stg_TblWageAllowances'))
+CREATE INDEX ix_stg_tblwageallowances_award_year ON Stg_TblWageAllowances(award_code, published_year);
+GO
+
+PRINT 'Base tables created successfully';
+GO
