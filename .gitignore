@@ -48,6 +48,14 @@ nosetests.xml
 coverage.xml
 *.cover
 *.py.cover
+
+# .NET / C# build artifacts
+[Bb]in/
+[Oo]bj/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
 .hypothesis/
 .pytest_cache/
 cover/
