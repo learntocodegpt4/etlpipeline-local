@@ -109,22 +109,31 @@ export function useDataPreview(
   table: string,
   page: number = 1,
   pageSize: number = 50,
-  awardCode?: string
+  filters?: Record<string, string | undefined>
 ) {
   const params = new URLSearchParams({
     page: page.toString(),
     page_size: pageSize.toString(),
   });
-  if (awardCode) params.set('award_code', awardCode);
+
+  // Add dynamic filters - convert snake_case filter names to backend format
+  if (filters) {
+    Object.entries(filters).forEach(([key, value]) => {
+      if (value && value.trim()) {
+        params.set(key, value);
+      }
+    });
+  }
 
   const { data, error, isLoading } = useSWR(
     `${API_URL}/data/preview/${table}?${params}`,
-    fetcher
+    fetcher,
+    { dedupingInterval: 1000 }
   );
 
   return {
     data: data?.data,
-    total: data?.total_count,
+    total: data?.total,
     isLoading,
     error,
   };

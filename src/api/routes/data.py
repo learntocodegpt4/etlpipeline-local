@@ -26,7 +26,7 @@ class DataPreviewResponse(BaseModel):
     """Response model for data preview"""
 
     table: str
-    total_count: int
+    total: int
     page: int
     page_size: int
     data: List[Dict[str, Any]]
@@ -38,8 +38,10 @@ async def preview_data(
     page: int = Query(1, ge=1),
     page_size: int = Query(50, ge=1, le=500),
     award_code: Optional[str] = None,
+    name: Optional[str] = None,
+    code: Optional[str] = None,
 ) -> DataPreviewResponse:
-    """Preview data from a table"""
+    """Preview data from a table with server-side filtering"""
     if table not in ALLOWED_TABLES:
         raise HTTPException(
             status_code=400,
@@ -50,13 +52,25 @@ async def preview_data(
     offset = (page - 1) * page_size
 
     try:
-        # Build query
-        where_clause = ""
+        # Build dynamic WHERE clause from filter parameters
+        where_conditions = []
         params: Dict[str, Any] = {"limit": page_size, "offset": offset}
 
-        if award_code and table != "Stg_TblAwards":
-            where_clause = "WHERE award_code = :award_code"
+        if award_code:
+            where_conditions.append("award_code = @award_code")
             params["award_code"] = award_code
+
+        if code:
+            where_conditions.append("code = @code")
+            params["code"] = code
+
+        if name:
+            where_conditions.append("name LIKE @name")
+            params["name"] = f"%{name}%"
+
+        where_clause = ""
+        if where_conditions:
+            where_clause = "WHERE " + " AND ".join(where_conditions)
 
         # Get total count
         count_sql = f"SELECT COUNT(*) as cnt FROM {table} {where_clause}"
@@ -64,7 +78,6 @@ async def preview_data(
         total_count = count_result[0]["cnt"] if count_result else 0
 
         # Get data using OFFSET/FETCH for reliable server-side pagination
-        # Note: requires an ORDER BY clause; use `id` if present.
         order_by = "id"
         data_sql = f"SELECT * FROM {table} {where_clause} ORDER BY {order_by} OFFSET :offset ROWS FETCH NEXT :limit ROWS ONLY"
         data = connector.execute_query(data_sql, params)
@@ -75,7 +88,7 @@ async def preview_data(
 
         return DataPreviewResponse(
             table=table,
-            total_count=total_count,
+            total=total_count,
             page=page,
             page_size=page_size,
             data=data,

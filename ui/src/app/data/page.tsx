@@ -31,15 +31,23 @@ export default function DataPage() {
   });
 
   const { tables, isLoading: tablesLoading } = useTables();
+
+  // Build filters object for server-side filtering
+  const filters: Record<string, string> = {};
+  if (awardFilter) filters.award_code = awardFilter;
+  if (nameFilter) filters.name = nameFilter;
+
   const { data, total, isLoading: dataLoading, error } = useDataPreview(
     selectedTable,
     paginationModel.page + 1,
     paginationModel.pageSize,
-    awardFilter || undefined
+    filters
   );
-    const currentTableCount =
+
+  const currentTableCount =
     tables?.find((t: any) => t.table === selectedTable)?.record_count ?? 0;
   const effectiveTotal = total ?? currentTableCount ?? 0;
+
   // Generate columns dynamically from data
   const columns: GridColDef[] = data && data.length > 0
     ? Object.keys(data[0]).map((key) => ({
@@ -59,15 +67,6 @@ export default function DataPage() {
         },
       }))
     : [];
-
-    // Client-side filter for name (applies to current page of server-side results)
-    const filteredData = (data || []).filter((row: any) => {
-      if (!nameFilter) return true;
-      const needle = nameFilter.toLowerCase();
-      return Object.values(row).some((v: any) =>
-        v !== null && v !== undefined && String(v).toLowerCase().includes(needle)
-      );
-    });
 
   return (
     <Box>
@@ -166,8 +165,8 @@ export default function DataPage() {
               <Button
                 variant="outlined"
                 onClick={() => {
-                  // Download visible rows as CSV
-                  const rows = (filteredData || []) as any[];
+                  // Download current page rows as CSV
+                  const rows = (data || []) as any[];
                   if (!rows || rows.length === 0) return;
                   const hdrs = columns.map((c) => c.field);
                   const csv = [hdrs.join(',')]
@@ -195,7 +194,7 @@ export default function DataPage() {
       ) : (
         <Paper sx={{ height: 600, width: '100%' }}>
           <DataGrid
-            rows={filteredData || []}
+            rows={data || []}
             columns={columns}
             rowCount={effectiveTotal || 0}
             loading={dataLoading}

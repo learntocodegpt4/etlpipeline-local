@@ -148,7 +148,7 @@ async def trigger_job(
     # sm = Depends(get_state_manager)
 
     # Create job record first
-    await sm.create_job(job_id)
+    # await sm.create_job(job_id)
 
     # Run pipeline in background; pass job_id so the pipeline uses the same job record
     background_tasks.add_task(_run_pipeline_task, request.award_codes, job_id)
@@ -182,11 +182,11 @@ async def trigger_job_sync(request: TriggerRequest,  sm: StateManager = Depends(
 
     # Save result to state (run_etl_pipeline already calls save_job_result,
     # but saving again is idempotent for the state DB)
-    try:
-        await sm.save_job_result(job_id, result)
-    except Exception:
-        # If save fails because the pipeline already saved it, ignore.
-        pass
+    # try:
+    #     await sm.save_job_result(job_id, result)
+    # except Exception:
+    #     # If save fails because the pipeline already saved it, ignore.
+    #     pass
 
     return result.to_dict()
 
