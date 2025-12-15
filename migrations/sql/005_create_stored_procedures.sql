@@ -462,5 +462,200 @@ BEGIN
 END
 GO
 
+-- Stored Procedure: Compile Awards Detailed
+-- Compiles comprehensive award information with all combinations from staging tables
+-- This provides maximum information for System Admin UI display and Tenant assignment
+IF OBJECT_ID('sp_CompileAwardsDetailed', 'P') IS NOT NULL
+    DROP PROCEDURE sp_CompileAwardsDetailed;
+GO
+
+CREATE PROCEDURE sp_CompileAwardsDetailed
+    @award_code NVARCHAR(50) = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    BEGIN TRY
+        -- Clear existing data for the award(s) being compiled
+        IF @award_code IS NOT NULL
+        BEGIN
+            DELETE FROM TblAwardsDetailed WHERE award_code = @award_code;
+        END
+        ELSE
+        BEGIN
+            TRUNCATE TABLE TblAwardsDetailed;
+        END
+        
+        -- Insert comprehensive award data with all combinations
+        -- This creates denormalized records showing all possible award configurations
+        
+        -- Step 1: Insert base award records (awards without any additional data)
+        INSERT INTO TblAwardsDetailed (
+            award_code, award_name, award_id, award_fixed_id,
+            award_operative_from, award_operative_to, version_number, published_year,
+            record_type, compiled_at
+        )
+        SELECT 
+            a.code,
+            a.name,
+            a.award_id,
+            a.award_fixed_id,
+            a.award_operative_from,
+            a.award_operative_to,
+            a.version_number,
+            a.published_year,
+            'BASE' as record_type,
+            GETUTCDATE() as compiled_at
+        FROM Stg_TblAwards a
+        WHERE (@award_code IS NULL OR a.code = @award_code);
+        
+        -- Step 2: Insert award + classification combinations
+        INSERT INTO TblAwardsDetailed (
+            award_code, award_name, award_id, award_fixed_id,
+            award_operative_from, award_operative_to, version_number, published_year,
+            classification_fixed_id, classification_name, parent_classification_name,
+            classification_level, classification_clauses, classification_clause_description,
+            record_type, compiled_at
+        )
+        SELECT 
+            a.code,
+            a.name,
+            a.award_id,
+            a.award_fixed_id,
+            a.award_operative_from,
+            a.award_operative_to,
+            a.version_number,
+            a.published_year,
+            c.classification_fixed_id,
+            c.classification,
+            c.parent_classification_name,
+            c.classification_level,
+            c.clauses,
+            c.clause_description,
+            'WITH_CLASSIFICATION' as record_type,
+            GETUTCDATE() as compiled_at
+        FROM Stg_TblAwards a
+        INNER JOIN Stg_TblClassifications c ON a.code = c.award_code
+        WHERE (@award_code IS NULL OR a.code = @award_code);
+        
+        -- Step 3: Insert award + classification + pay rate combinations
+        INSERT INTO TblAwardsDetailed (
+            award_code, award_name, award_id, award_fixed_id,
+            award_operative_from, award_operative_to, version_number, published_year,
+            classification_fixed_id, classification_name, parent_classification_name,
+            classification_level,
+            base_pay_rate_id, base_rate_type, base_rate,
+            calculated_pay_rate_id, calculated_rate_type, calculated_rate,
+            employee_rate_type_code,
+            record_type, compiled_at
+        )
+        SELECT 
+            a.code,
+            a.name,
+            a.award_id,
+            a.award_fixed_id,
+            a.award_operative_from,
+            a.award_operative_to,
+            a.version_number,
+            a.published_year,
+            p.classification_fixed_id,
+            p.classification,
+            p.parent_classification_name,
+            p.classification_level,
+            p.base_pay_rate_id,
+            p.base_rate_type,
+            p.base_rate,
+            p.calculated_pay_rate_id,
+            p.calculated_rate_type,
+            p.calculated_rate,
+            p.employee_rate_type_code,
+            'WITH_PAYRATE' as record_type,
+            GETUTCDATE() as compiled_at
+        FROM Stg_TblAwards a
+        INNER JOIN Stg_TblPayRates p ON a.code = p.award_code
+        WHERE (@award_code IS NULL OR a.code = @award_code);
+        
+        -- Step 4: Insert award + expense allowance combinations
+        INSERT INTO TblAwardsDetailed (
+            award_code, award_name, award_id, award_fixed_id,
+            award_operative_from, award_operative_to, version_number, published_year,
+            expense_allowance_fixed_id, expense_allowance_name, parent_expense_allowance,
+            expense_allowance_amount, expense_payment_frequency, expense_is_all_purpose,
+            expense_last_adjusted_year, expense_cpi_quarter,
+            record_type, compiled_at
+        )
+        SELECT 
+            a.code,
+            a.name,
+            a.award_id,
+            a.award_fixed_id,
+            a.award_operative_from,
+            a.award_operative_to,
+            a.version_number,
+            a.published_year,
+            e.expense_allowance_fixed_id,
+            e.allowance,
+            e.parent_allowance,
+            e.allowance_amount,
+            e.payment_frequency,
+            e.is_all_purpose,
+            e.last_adjusted_year,
+            e.cpi_quarter_last_adjusted,
+            'WITH_EXPENSE' as record_type,
+            GETUTCDATE() as compiled_at
+        FROM Stg_TblAwards a
+        INNER JOIN Stg_TblExpenseAllowances e ON a.code = e.award_code
+        WHERE (@award_code IS NULL OR a.code = @award_code);
+        
+        -- Step 5: Insert award + wage allowance combinations
+        INSERT INTO TblAwardsDetailed (
+            award_code, award_name, award_id, award_fixed_id,
+            award_operative_from, award_operative_to, version_number, published_year,
+            wage_allowance_fixed_id, wage_allowance_name, parent_wage_allowance,
+            wage_allowance_rate, wage_allowance_rate_unit, wage_allowance_amount,
+            wage_payment_frequency, wage_is_all_purpose,
+            record_type, compiled_at
+        )
+        SELECT 
+            a.code,
+            a.name,
+            a.award_id,
+            a.award_fixed_id,
+            a.award_operative_from,
+            a.award_operative_to,
+            a.version_number,
+            a.published_year,
+            w.wage_allowance_fixed_id,
+            w.allowance,
+            w.parent_allowance,
+            w.rate,
+            w.rate_unit,
+            w.allowance_amount,
+            w.payment_frequency,
+            w.is_all_purpose,
+            'WITH_WAGE' as record_type,
+            GETUTCDATE() as compiled_at
+        FROM Stg_TblAwards a
+        INNER JOIN Stg_TblWageAllowances w ON a.code = w.award_code
+        WHERE (@award_code IS NULL OR a.code = @award_code);
+        
+        -- Return summary of compilation
+        SELECT 
+            'Success' as Status,
+            (SELECT COUNT(*) FROM TblAwardsDetailed WHERE @award_code IS NULL OR award_code = @award_code) as TotalRecords,
+            (SELECT COUNT(DISTINCT award_code) FROM TblAwardsDetailed WHERE @award_code IS NULL OR award_code = @award_code) as TotalAwards,
+            (SELECT COUNT(*) FROM TblAwardsDetailed WHERE record_type = 'BASE' AND (@award_code IS NULL OR award_code = @award_code)) as BaseRecords,
+            (SELECT COUNT(*) FROM TblAwardsDetailed WHERE record_type = 'WITH_CLASSIFICATION' AND (@award_code IS NULL OR award_code = @award_code)) as ClassificationRecords,
+            (SELECT COUNT(*) FROM TblAwardsDetailed WHERE record_type = 'WITH_PAYRATE' AND (@award_code IS NULL OR award_code = @award_code)) as PayRateRecords,
+            (SELECT COUNT(*) FROM TblAwardsDetailed WHERE record_type = 'WITH_EXPENSE' AND (@award_code IS NULL OR award_code = @award_code)) as ExpenseRecords,
+            (SELECT COUNT(*) FROM TblAwardsDetailed WHERE record_type = 'WITH_WAGE' AND (@award_code IS NULL OR award_code = @award_code)) as WageRecords;
+            
+    END TRY
+    BEGIN CATCH
+        SELECT 'Error' as Status, ERROR_MESSAGE() as ErrorMessage;
+    END CATCH
+END
+GO
+
 PRINT 'Stored procedures created successfully';
 GO

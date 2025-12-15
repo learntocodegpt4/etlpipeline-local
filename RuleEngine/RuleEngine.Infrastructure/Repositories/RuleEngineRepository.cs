@@ -1,6 +1,7 @@
 using Dapper;
 using RuleEngine.Application.Commands.ApplyRule;
 using RuleEngine.Application.Commands.CompileAwardsSummary;
+using RuleEngine.Application.Commands.CompileAwardsDetailed;
 using RuleEngine.Application.Interfaces;
 using RuleEngine.Domain.Entities;
 using RuleEngine.Infrastructure.Data;
@@ -31,6 +32,31 @@ public class RuleEngineRepository : IRuleEngineRepository
         {
             Status = result?.Status ?? "Error",
             RecordsCompiled = result?.RecordsCompiled ?? 0,
+            ErrorMessage = result?.ErrorMessage
+        };
+    }
+
+    public async Task<CompileAwardsDetailedResult> CompileAwardsDetailedAsync(string? awardCode)
+    {
+        using var connection = _context.CreateConnection();
+        var parameters = new { award_code = awardCode };
+        
+        var result = await connection.QueryFirstOrDefaultAsync<dynamic>(
+            "sp_CompileAwardsDetailed",
+            parameters,
+            commandType: System.Data.CommandType.StoredProcedure
+        );
+
+        return new CompileAwardsDetailedResult
+        {
+            Status = result?.Status ?? "Error",
+            TotalRecords = result?.TotalRecords ?? 0,
+            TotalAwards = result?.TotalAwards ?? 0,
+            BaseRecords = result?.BaseRecords ?? 0,
+            ClassificationRecords = result?.ClassificationRecords ?? 0,
+            PayRateRecords = result?.PayRateRecords ?? 0,
+            ExpenseRecords = result?.ExpenseRecords ?? 0,
+            WageRecords = result?.WageRecords ?? 0,
             ErrorMessage = result?.ErrorMessage
         };
     }
@@ -124,6 +150,68 @@ public class RuleEngineRepository : IRuleEngineRepository
         );
 
         return result?.rules_json ?? "[]";
+    }
+
+    public async Task<IEnumerable<AwardDetailed>> GetAwardsDetailedAsync(string? awardCode, string? recordType, int? classificationFixedId)
+    {
+        using var connection = _context.CreateConnection();
+        
+        var sql = @"
+            SELECT 
+                id as Id,
+                award_code as AwardCode,
+                award_name as AwardName,
+                award_id as AwardId,
+                award_fixed_id as AwardFixedId,
+                award_operative_from as AwardOperativeFrom,
+                award_operative_to as AwardOperativeTo,
+                version_number as VersionNumber,
+                published_year as PublishedYear,
+                classification_fixed_id as ClassificationFixedId,
+                classification_name as ClassificationName,
+                parent_classification_name as ParentClassificationName,
+                classification_level as ClassificationLevel,
+                classification_clauses as ClassificationClauses,
+                classification_clause_description as ClassificationClauseDescription,
+                base_pay_rate_id as BasePayRateId,
+                base_rate_type as BaseRateType,
+                base_rate as BaseRate,
+                calculated_pay_rate_id as CalculatedPayRateId,
+                calculated_rate_type as CalculatedRateType,
+                calculated_rate as CalculatedRate,
+                employee_rate_type_code as EmployeeRateTypeCode,
+                expense_allowance_fixed_id as ExpenseAllowanceFixedId,
+                expense_allowance_name as ExpenseAllowanceName,
+                parent_expense_allowance as ParentExpenseAllowance,
+                expense_allowance_amount as ExpenseAllowanceAmount,
+                expense_payment_frequency as ExpensePaymentFrequency,
+                expense_is_all_purpose as ExpenseIsAllPurpose,
+                expense_last_adjusted_year as ExpenseLastAdjustedYear,
+                expense_cpi_quarter as ExpenseCpiQuarter,
+                wage_allowance_fixed_id as WageAllowanceFixedId,
+                wage_allowance_name as WageAllowanceName,
+                parent_wage_allowance as ParentWageAllowance,
+                wage_allowance_rate as WageAllowanceRate,
+                wage_allowance_rate_unit as WageAllowanceRateUnit,
+                wage_allowance_amount as WageAllowanceAmount,
+                wage_payment_frequency as WagePaymentFrequency,
+                wage_is_all_purpose as WageIsAllPurpose,
+                record_type as RecordType,
+                is_active as IsActive,
+                compiled_at as CompiledAt,
+                created_at as CreatedAt,
+                updated_at as UpdatedAt
+            FROM TblAwardsDetailed
+            WHERE (@AwardCode IS NULL OR award_code = @AwardCode)
+            AND (@RecordType IS NULL OR record_type = @RecordType)
+            AND (@ClassificationFixedId IS NULL OR classification_fixed_id = @ClassificationFixedId)
+            ORDER BY award_code, record_type, id";
+
+        return await connection.QueryAsync<AwardDetailed>(sql, new { 
+            AwardCode = awardCode, 
+            RecordType = recordType, 
+            ClassificationFixedId = classificationFixedId 
+        });
     }
 
     public async Task<bool> InitializeBasicRulesAsync()

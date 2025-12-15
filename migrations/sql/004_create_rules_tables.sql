@@ -125,5 +125,79 @@ IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name='ix_tblruleexecutionlog_exec
 CREATE INDEX ix_tblruleexecutionlog_exec_id ON TblRuleExecutionLog(execution_id);
 GO
 
+-- Awards Detailed Table - stores comprehensive award information with all related data
+-- This table provides maximum information for System Admin UI display
+IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='TblAwardsDetailed' AND xtype='U')
+CREATE TABLE TblAwardsDetailed (
+    id INT IDENTITY(1,1) PRIMARY KEY,
+    
+    -- Award Basic Info
+    award_code NVARCHAR(50) NOT NULL,
+    award_name NVARCHAR(500) NULL,
+    award_id INT NULL,
+    award_fixed_id INT NULL,
+    award_operative_from DATETIME2 NULL,
+    award_operative_to DATETIME2 NULL,
+    version_number INT NULL,
+    published_year INT NULL,
+    
+    -- Classification Info
+    classification_fixed_id INT NULL,
+    classification_name NVARCHAR(500) NULL,
+    parent_classification_name NVARCHAR(500) NULL,
+    classification_level INT NULL,
+    classification_clauses NVARCHAR(200) NULL,
+    classification_clause_description NVARCHAR(1000) NULL,
+    
+    -- Pay Rate Info
+    base_pay_rate_id NVARCHAR(50) NULL,
+    base_rate_type NVARCHAR(50) NULL,
+    base_rate DECIMAL(18,4) NULL,
+    calculated_pay_rate_id NVARCHAR(50) NULL,
+    calculated_rate_type NVARCHAR(50) NULL,
+    calculated_rate DECIMAL(18,4) NULL,
+    employee_rate_type_code NVARCHAR(20) NULL,
+    
+    -- Expense Allowance Info
+    expense_allowance_fixed_id INT NULL,
+    expense_allowance_name NVARCHAR(500) NULL,
+    parent_expense_allowance NVARCHAR(500) NULL,
+    expense_allowance_amount DECIMAL(18,4) NULL,
+    expense_payment_frequency NVARCHAR(50) NULL,
+    expense_is_all_purpose BIT NULL,
+    expense_last_adjusted_year INT NULL,
+    expense_cpi_quarter NVARCHAR(50) NULL,
+    
+    -- Wage Allowance Info
+    wage_allowance_fixed_id INT NULL,
+    wage_allowance_name NVARCHAR(500) NULL,
+    parent_wage_allowance NVARCHAR(500) NULL,
+    wage_allowance_rate DECIMAL(18,4) NULL,
+    wage_allowance_rate_unit NVARCHAR(50) NULL,
+    wage_allowance_amount DECIMAL(18,4) NULL,
+    wage_payment_frequency NVARCHAR(50) NULL,
+    wage_is_all_purpose BIT NULL,
+    
+    -- Metadata
+    record_type NVARCHAR(50) NOT NULL, -- 'BASE', 'WITH_CLASSIFICATION', 'WITH_PAYRATE', 'WITH_EXPENSE', 'WITH_WAGE'
+    is_active BIT DEFAULT 1,
+    compiled_at DATETIME2 DEFAULT GETUTCDATE(),
+    created_at DATETIME2 DEFAULT GETUTCDATE(),
+    updated_at DATETIME2 DEFAULT GETUTCDATE()
+);
+GO
+
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name='ix_tblawardsdetailed_award_code' AND object_id = OBJECT_ID('TblAwardsDetailed'))
+CREATE INDEX ix_tblawardsdetailed_award_code ON TblAwardsDetailed(award_code);
+GO
+
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name='ix_tblawardsdetailed_record_type' AND object_id = OBJECT_ID('TblAwardsDetailed'))
+CREATE INDEX ix_tblawardsdetailed_record_type ON TblAwardsDetailed(record_type);
+GO
+
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name='ix_tblawardsdetailed_classification' AND object_id = OBJECT_ID('TblAwardsDetailed'))
+CREATE INDEX ix_tblawardsdetailed_classification ON TblAwardsDetailed(classification_fixed_id);
+GO
+
 PRINT 'Rules engine tables created successfully';
 GO
