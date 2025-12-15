@@ -2,6 +2,7 @@ using Dapper;
 using RuleEngine.Application.Commands.ApplyRule;
 using RuleEngine.Application.Commands.CompileAwardsSummary;
 using RuleEngine.Application.Commands.CompileAwardsDetailed;
+using RuleEngine.Application.Commands.CalculatePayRates;
 using RuleEngine.Application.Interfaces;
 using RuleEngine.Domain.Entities;
 using RuleEngine.Infrastructure.Data;
@@ -228,5 +229,123 @@ public class RuleEngineRepository : IRuleEngineRepository
         );
 
         return result?.Status == "Success";
+    }
+
+    public async Task<CalculatePayRatesResult> CalculateAllPayRatesAsync(string? awardCode, int? classificationFixedId)
+    {
+        using var connection = _context.CreateConnection();
+        var parameters = new
+        {
+            award_code = awardCode,
+            classification_fixed_id = classificationFixedId
+        };
+        
+        var result = await connection.QueryFirstOrDefaultAsync<dynamic>(
+            "sp_CalculateAllPayRates",
+            parameters,
+            commandType: System.Data.CommandType.StoredProcedure,
+            commandTimeout: 300 // 5 minutes for large calculations
+        );
+
+        return new CalculatePayRatesResult
+        {
+            Status = result?.Status ?? "Error",
+            TotalRecordsCreated = result?.TotalRecordsCreated ?? 0,
+            DurationSeconds = result?.DurationSeconds ?? 0,
+            AwardsProcessed = result?.AwardsProcessed ?? 0,
+            ClassificationsProcessed = result?.ClassificationsProcessed ?? 0,
+            FullTimeRates = result?.FullTimeRates ?? 0,
+            PartTimeRates = result?.PartTimeRates ?? 0,
+            CasualRates = result?.CasualRates ?? 0,
+            Message = result?.Status == "Success" 
+                ? $"Successfully calculated {result?.TotalRecordsCreated ?? 0} pay rates" 
+                : "Calculation failed"
+        };
+    }
+
+    public async Task<IEnumerable<CalculatedPayRate>> GetCalculatedPayRatesAsync(
+        string? awardCode,
+        int? classificationFixedId,
+        string? employmentType,
+        string? dayType,
+        string? shiftType,
+        string? employeeAgeCategory,
+        int pageNumber,
+        int pageSize)
+    {
+        using var connection = _context.CreateConnection();
+        
+        var sql = @"
+            SELECT 
+                id AS Id,
+                award_code AS AwardCode,
+                award_name AS AwardName,
+                classification_fixed_id AS ClassificationFixedId,
+                classification_name AS ClassificationName,
+                classification_level AS ClassificationLevel,
+                base_pay_rate_id AS BasePayRateId,
+                base_rate AS BaseRate,
+                base_rate_type AS BaseRateType,
+                employment_type AS EmploymentType,
+                employee_age_category AS EmployeeAgeCategory,
+                employee_category AS EmployeeCategory,
+                day_type AS DayType,
+                shift_type AS ShiftType,
+                time_range AS TimeRange,
+                casual_loading_applied AS CasualLoadingApplied,
+                casual_loaded_rate AS CasualLoadedRate,
+                junior_percentage_applied AS JuniorPercentageApplied,
+                junior_adjusted_rate AS JuniorAdjustedRate,
+                apprentice_percentage_applied AS ApprenticePercentageApplied,
+                apprentice_adjusted_rate AS ApprenticeAdjustedRate,
+                penalty_type AS PenaltyType,
+                penalty_multiplier_applied AS PenaltyMultiplierApplied,
+                penalty_flat_amount_applied AS PenaltyFlatAmountApplied,
+                calculated_hourly_rate AS CalculatedHourlyRate,
+                calculated_rate_description AS CalculatedRateDescription,
+                calculation_steps AS CalculationSteps,
+                applicable_allowance_ids AS ApplicableAllowanceIds,
+                applicable_allowance_total AS ApplicableAllowanceTotal,
+                effective_from AS EffectiveFrom,
+                effective_to AS EffectiveTo,
+                penalty_clause_reference AS PenaltyClauseReference,
+                casual_clause_reference AS CasualClauseReference,
+                junior_clause_reference AS JuniorClauseReference,
+                is_active AS IsActive,
+                compiled_at AS CompiledAt,
+                compiled_by AS CompiledBy,
+                created_at AS CreatedAt,
+                updated_at AS UpdatedAt
+            FROM TblCalculatedPayRates
+            WHERE is_active = 1
+                AND (@award_code IS NULL OR award_code = @award_code)
+                AND (@classification_fixed_id IS NULL OR classification_fixed_id = @classification_fixed_id)
+                AND (@employment_type IS NULL OR employment_type = @employment_type)
+                AND (@day_type IS NULL OR day_type = @day_type)
+                AND (@shift_type IS NULL OR shift_type = @shift_type)
+                AND (@employee_age_category IS NULL OR employee_age_category = @employee_age_category)
+            ORDER BY 
+                award_code,
+                classification_level,
+                employment_type,
+                day_type,
+                shift_type,
+                employee_age_category
+            OFFSET @offset ROWS
+            FETCH NEXT @pageSize ROWS ONLY";
+        
+        var parameters = new
+        {
+            award_code = awardCode,
+            classification_fixed_id = classificationFixedId,
+            employment_type = employmentType,
+            day_type = dayType,
+            shift_type = shiftType,
+            employee_age_category = employeeAgeCategory,
+            offset = (pageNumber - 1) * pageSize,
+            pageSize
+        };
+
+        return await connection.QueryAsync<CalculatedPayRate>(sql, parameters);
     }
 }
