@@ -2,7 +2,11 @@
 -- Creates tables for rules engine and awards compilation
 
 -- Awards Summary table - stores compiled awards summaries
-IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='TblAwardsSummary' AND xtype='U')
+-- Recreate table for modifications
+IF OBJECT_ID('TblAwardsSummary', 'U') IS NOT NULL
+    DROP TABLE TblAwardsSummary;
+GO
+
 CREATE TABLE TblAwardsSummary (
     id INT IDENTITY(1,1) PRIMARY KEY,
     award_code NVARCHAR(50) NOT NULL,
@@ -23,16 +27,34 @@ CREATE TABLE TblAwardsSummary (
 );
 GO
 
-IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name='ix_tblawardssummary_code' AND object_id = OBJECT_ID('TblAwardsSummary'))
+IF EXISTS (SELECT * FROM sys.indexes WHERE name='ix_tblawardssummary_code' AND object_id = OBJECT_ID('TblAwardsSummary'))
+    DROP INDEX ix_tblawardssummary_code ON TblAwardsSummary;
+GO
 CREATE INDEX ix_tblawardssummary_code ON TblAwardsSummary(award_code);
 GO
 
-IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name='ix_tblawardssummary_industry' AND object_id = OBJECT_ID('TblAwardsSummary'))
+IF EXISTS (SELECT * FROM sys.indexes WHERE name='ix_tblawardssummary_industry' AND object_id = OBJECT_ID('TblAwardsSummary'))
+    DROP INDEX ix_tblawardssummary_industry ON TblAwardsSummary;
+GO
 CREATE INDEX ix_tblawardssummary_industry ON TblAwardsSummary(industry_type);
 GO
 
 -- Rules table - stores all rules (simple and complex)
-IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='TblRules' AND xtype='U')
+-- Safe drop: ensure dependent FKs are removed first
+IF OBJECT_ID('TblRules', 'U') IS NOT NULL
+BEGIN
+    -- Drop FK on TblAwardRules if it exists
+    IF EXISTS (
+        SELECT 1 FROM sys.foreign_keys WHERE name = 'FK_award_rules_rule_code'
+        AND parent_object_id = OBJECT_ID('TblAwardRules')
+    )
+    BEGIN
+        ALTER TABLE TblAwardRules DROP CONSTRAINT FK_award_rules_rule_code;
+    END
+    DROP TABLE TblRules;
+END
+GO
+
 CREATE TABLE TblRules (
     id INT IDENTITY(1,1) PRIMARY KEY,
     rule_code NVARCHAR(50) NOT NULL UNIQUE,
@@ -49,16 +71,24 @@ CREATE TABLE TblRules (
 );
 GO
 
-IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name='ix_tblrules_type' AND object_id = OBJECT_ID('TblRules'))
+IF EXISTS (SELECT * FROM sys.indexes WHERE name='ix_tblrules_type' AND object_id = OBJECT_ID('TblRules'))
+    DROP INDEX ix_tblrules_type ON TblRules;
+GO
 CREATE INDEX ix_tblrules_type ON TblRules(rule_type);
 GO
 
-IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name='ix_tblrules_category' AND object_id = OBJECT_ID('TblRules'))
+IF EXISTS (SELECT * FROM sys.indexes WHERE name='ix_tblrules_category' AND object_id = OBJECT_ID('TblRules'))
+    DROP INDEX ix_tblrules_category ON TblRules;
+GO
 CREATE INDEX ix_tblrules_category ON TblRules(rule_category);
 GO
 
 -- Award Rules Mapping - maps rules to awards
-IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='TblAwardRules' AND xtype='U')
+-- Drop table cleanly (will be recreated below)
+IF OBJECT_ID('TblAwardRules', 'U') IS NOT NULL
+    DROP TABLE TblAwardRules;
+GO
+
 CREATE TABLE TblAwardRules (
     id INT IDENTITY(1,1) PRIMARY KEY,
     award_code NVARCHAR(50) NOT NULL,
@@ -71,16 +101,23 @@ CREATE TABLE TblAwardRules (
 );
 GO
 
-IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name='ix_tblawardrules_award' AND object_id = OBJECT_ID('TblAwardRules'))
+IF EXISTS (SELECT * FROM sys.indexes WHERE name='ix_tblawardrules_award' AND object_id = OBJECT_ID('TblAwardRules'))
+    DROP INDEX ix_tblawardrules_award ON TblAwardRules;
+GO
 CREATE INDEX ix_tblawardrules_award ON TblAwardRules(award_code);
 GO
 
-IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name='ix_tblawardrules_rule' AND object_id = OBJECT_ID('TblAwardRules'))
+IF EXISTS (SELECT * FROM sys.indexes WHERE name='ix_tblawardrules_rule' AND object_id = OBJECT_ID('TblAwardRules'))
+    DROP INDEX ix_tblawardrules_rule ON TblAwardRules;
+GO
 CREATE INDEX ix_tblawardrules_rule ON TblAwardRules(rule_code);
 GO
 
 -- Custom Awards table - stores custom awards created by system admin
-IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='TblCustomAwards' AND xtype='U')
+IF OBJECT_ID('TblCustomAwards', 'U') IS NOT NULL
+    DROP TABLE TblCustomAwards;
+GO
+
 CREATE TABLE TblCustomAwards (
     id INT IDENTITY(1,1) PRIMARY KEY,
     custom_award_code NVARCHAR(50) NOT NULL UNIQUE,
@@ -98,16 +135,23 @@ CREATE TABLE TblCustomAwards (
 );
 GO
 
-IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name='ix_tblcustomawards_base_code' AND object_id = OBJECT_ID('TblCustomAwards'))
+IF EXISTS (SELECT * FROM sys.indexes WHERE name='ix_tblcustomawards_base_code' AND object_id = OBJECT_ID('TblCustomAwards'))
+    DROP INDEX ix_tblcustomawards_base_code ON TblCustomAwards;
+GO
 CREATE INDEX ix_tblcustomawards_base_code ON TblCustomAwards(base_award_code);
 GO
 
-IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name='ix_tblcustomawards_tenant' AND object_id = OBJECT_ID('TblCustomAwards'))
+IF EXISTS (SELECT * FROM sys.indexes WHERE name='ix_tblcustomawards_tenant' AND object_id = OBJECT_ID('TblCustomAwards'))
+    DROP INDEX ix_tblcustomawards_tenant ON TblCustomAwards;
+GO
 CREATE INDEX ix_tblcustomawards_tenant ON TblCustomAwards(tenant_id);
 GO
 
 -- Rule Execution Log - tracks rule execution history
-IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='TblRuleExecutionLog' AND xtype='U')
+IF OBJECT_ID('TblRuleExecutionLog', 'U') IS NOT NULL
+    DROP TABLE TblRuleExecutionLog;
+GO
+
 CREATE TABLE TblRuleExecutionLog (
     id INT IDENTITY(1,1) PRIMARY KEY,
     execution_id NVARCHAR(50) NOT NULL,
@@ -121,7 +165,9 @@ CREATE TABLE TblRuleExecutionLog (
 );
 GO
 
-IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name='ix_tblruleexecutionlog_exec_id' AND object_id = OBJECT_ID('TblRuleExecutionLog'))
+IF EXISTS (SELECT * FROM sys.indexes WHERE name='ix_tblruleexecutionlog_exec_id' AND object_id = OBJECT_ID('TblRuleExecutionLog'))
+    DROP INDEX ix_tblruleexecutionlog_exec_id ON TblRuleExecutionLog;
+GO
 CREATE INDEX ix_tblruleexecutionlog_exec_id ON TblRuleExecutionLog(execution_id);
 GO
 
