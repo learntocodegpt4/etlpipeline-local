@@ -206,6 +206,8 @@ CREATE TABLE TblAwardsDetailed (
     
     -- Expense Allowance Info
     expense_allowance_fixed_id INT NULL,
+    expense_clause_fixed_id INT NULL,
+    expense_clauses NVARCHAR(200) NULL,
     expense_allowance_name NVARCHAR(500) NULL,
     parent_expense_allowance NVARCHAR(500) NULL,
     expense_allowance_amount DECIMAL(18,4) NULL,
@@ -216,6 +218,8 @@ CREATE TABLE TblAwardsDetailed (
     
     -- Wage Allowance Info
     wage_allowance_fixed_id INT NULL,
+    wage_clause_fixed_id INT NULL,
+    wage_clauses NVARCHAR(200) NULL,
     wage_allowance_name NVARCHAR(500) NULL,
     parent_wage_allowance NVARCHAR(500) NULL,
     wage_allowance_rate DECIMAL(18,4) NULL,

@@ -33,6 +33,8 @@ public class AwardDetailed
     
     // Expense Allowance Info
     public int? ExpenseAllowanceFixedId { get; set; }
+    public int? ExpenseClauseFixedId { get; set; }
+    public string? ExpenseClauses { get; set; }
     public string? ExpenseAllowanceName { get; set; }
     public string? ParentExpenseAllowance { get; set; }
     public decimal? ExpenseAllowanceAmount { get; set; }
@@ -43,6 +45,8 @@ public class AwardDetailed
     
     // Wage Allowance Info
     public int? WageAllowanceFixedId { get; set; }
+    public int? WageClauseFixedId { get; set; }
+    public string? WageClauses { get; set; }
     public string? WageAllowanceName { get; set; }
     public string? ParentWageAllowance { get; set; }
     public decimal? WageAllowanceRate { get; set; }

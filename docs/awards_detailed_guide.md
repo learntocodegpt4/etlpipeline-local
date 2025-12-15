@@ -23,7 +23,7 @@ This allows System Admins to:
 
 ### Structure
 
-The table contains 60+ columns organized into categories:
+The table contains 64 columns organized into categories:
 
 #### Award Basic Info (9 fields)
 - `award_code` - Award identifier (e.g., MA000001)
@@ -45,8 +45,10 @@ The table contains 60+ columns organized into categories:
 - `calculated_pay_rate_id`, `calculated_rate_type`, `calculated_rate` - Calculated rates
 - `employee_rate_type_code` - Employee type
 
-#### Expense Allowance Info (8 fields)
+#### Expense Allowance Info (10 fields)
 - `expense_allowance_fixed_id` - Allowance identifier
+- `expense_clause_fixed_id` - Clause identifier
+- `expense_clauses` - Related clause numbers
 - `expense_allowance_name` - Allowance description
 - `parent_expense_allowance` - Parent allowance
 - `expense_allowance_amount` - Amount value
@@ -54,8 +56,10 @@ The table contains 60+ columns organized into categories:
 - `expense_is_all_purpose` - All-purpose flag
 - `expense_last_adjusted_year`, `expense_cpi_quarter` - Adjustment tracking
 
-#### Wage Allowance Info (8 fields)
+#### Wage Allowance Info (10 fields)
 - `wage_allowance_fixed_id` - Allowance identifier
+- `wage_clause_fixed_id` - Clause identifier
+- `wage_clauses` - Related clause numbers
 - `wage_allowance_name` - Allowance description
 - `parent_wage_allowance` - Parent allowance
 - `wage_allowance_rate`, `wage_allowance_rate_unit` - Rate information
@@ -74,10 +78,23 @@ The table contains 60+ columns organized into categories:
 Each award generates multiple records based on available data:
 
 1. **BASE** - One record per award with just basic info
-2. **WITH_CLASSIFICATION** - One record per classification within the award
+2. **WITH_CLASSIFICATION** - One record per classification within the award (includes clause info)
 3. **WITH_PAYRATE** - One record per pay rate (includes classification info)
-4. **WITH_EXPENSE** - One record per expense allowance
-5. **WITH_WAGE** - One record per wage allowance
+4. **WITH_EXPENSE** - One record per expense allowance (includes clause info)
+5. **WITH_WAGE** - One record per wage allowance (includes clause info)
+
+### Clause Information
+
+The table captures clause information for all applicable data types:
+- **Classifications**: `classification_clauses` and `classification_clause_description` show which clauses define the classification
+- **Expense Allowances**: `expense_clause_fixed_id` and `expense_clauses` show which clauses apply to the allowance
+- **Wage Allowances**: `wage_clause_fixed_id` and `wage_clauses` show which clauses apply to the allowance
+
+This clause information is essential for:
+- Understanding which award clauses apply to each component
+- Showing clause references on the System Admin UI
+- Ensuring compliance with specific award provisions
+- Helping QA/BA teams verify data correctness
 
 ### Example
 
@@ -330,6 +347,49 @@ SELECT
 FROM TblAwardsDetailed
 WHERE award_code = 'MA000001'
 ORDER BY record_type, id;
+```
+
+### 7. Clause Information Display
+
+View which clauses apply to each award component:
+
+```sql
+-- Get all clauses for classifications in an award
+SELECT 
+    award_code,
+    award_name,
+    classification_name,
+    classification_clauses,
+    classification_clause_description
+FROM TblAwardsDetailed
+WHERE award_code = 'MA000001'
+  AND record_type = 'WITH_CLASSIFICATION'
+  AND classification_clauses IS NOT NULL
+ORDER BY classification_name;
+
+-- Get all clauses for allowances
+SELECT 
+    award_code,
+    'Expense Allowance' as allowance_type,
+    expense_allowance_name as allowance_name,
+    expense_clauses as clauses,
+    expense_clause_fixed_id as clause_fixed_id
+FROM TblAwardsDetailed
+WHERE award_code = 'MA000001'
+  AND record_type = 'WITH_EXPENSE'
+  AND expense_clauses IS NOT NULL
+UNION ALL
+SELECT 
+    award_code,
+    'Wage Allowance' as allowance_type,
+    wage_allowance_name as allowance_name,
+    wage_clauses as clauses,
+    wage_clause_fixed_id as clause_fixed_id
+FROM TblAwardsDetailed
+WHERE award_code = 'MA000001'
+  AND record_type = 'WITH_WAGE'
+  AND wage_clauses IS NOT NULL
+ORDER BY allowance_type, allowance_name;
 ```
 
 ## Workflow Integration

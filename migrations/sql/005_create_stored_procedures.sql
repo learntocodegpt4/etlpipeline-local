@@ -579,7 +579,8 @@ BEGIN
         INSERT INTO TblAwardsDetailed (
             award_code, award_name, award_id, award_fixed_id,
             award_operative_from, award_operative_to, version_number, published_year,
-            expense_allowance_fixed_id, expense_allowance_name, parent_expense_allowance,
+            expense_allowance_fixed_id, expense_clause_fixed_id, expense_clauses,
+            expense_allowance_name, parent_expense_allowance,
             expense_allowance_amount, expense_payment_frequency, expense_is_all_purpose,
             expense_last_adjusted_year, expense_cpi_quarter,
             record_type, compiled_at
@@ -594,6 +595,8 @@ BEGIN
             a.version_number,
             a.published_year,
             e.expense_allowance_fixed_id,
+            e.clause_fixed_id,
+            e.clauses,
             e.allowance,
             e.parent_allowance,
             e.allowance_amount,
@@ -611,7 +614,8 @@ BEGIN
         INSERT INTO TblAwardsDetailed (
             award_code, award_name, award_id, award_fixed_id,
             award_operative_from, award_operative_to, version_number, published_year,
-            wage_allowance_fixed_id, wage_allowance_name, parent_wage_allowance,
+            wage_allowance_fixed_id, wage_clause_fixed_id, wage_clauses,
+            wage_allowance_name, parent_wage_allowance,
             wage_allowance_rate, wage_allowance_rate_unit, wage_allowance_amount,
             wage_payment_frequency, wage_is_all_purpose,
             record_type, compiled_at
@@ -626,6 +630,8 @@ BEGIN
             a.version_number,
             a.published_year,
             w.wage_allowance_fixed_id,
+            w.clause_fixed_id,
+            w.clauses,
             w.allowance,
             w.parent_allowance,
             w.rate,
