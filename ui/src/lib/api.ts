@@ -166,4 +166,51 @@ export async function deleteJob(jobId: string) {
   return res.json();
 }
 
+// Penalties hooks
+export function usePenalties(
+  awardCode?: string,
+  classificationLevel?: number,
+  penaltyType?: string,
+  page: number = 1,
+  pageSize: number = 100
+) {
+  const params = new URLSearchParams({
+    page: page.toString(),
+    pageSize: pageSize.toString(),
+  });
+  if (awardCode) params.set('awardCode', awardCode);
+  if (classificationLevel) params.set('classificationLevel', classificationLevel.toString());
+  if (penaltyType) params.set('penaltyType', penaltyType);
+
+  const { data, error, isLoading, mutate } = useSWR(
+    `http://localhost:5000/api/penalties?${params}`,
+    fetcher,
+    { dedupingInterval: 1000 }
+  );
+
+  return {
+    penalties: data?.penalties || [],
+    totalCount: data?.totalCount || 0,
+    page: data?.page || 1,
+    pageSize: data?.pageSize || 100,
+    totalPages: data?.totalPages || 0,
+    isLoading,
+    error,
+    mutate,
+  };
+}
+
+export function usePenaltyStatistics(awardCode: string) {
+  const { data, error, isLoading } = useSWR(
+    awardCode ? `http://localhost:5000/api/penalties/statistics?awardCode=${awardCode}` : null,
+    fetcher
+  );
+
+  return {
+    statistics: data,
+    isLoading,
+    error,
+  };
+}
+
 export { globalMutate as mutate };

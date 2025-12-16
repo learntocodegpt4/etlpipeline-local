@@ -28,4 +28,12 @@ public interface IRuleEngineRepository
         string? employeeAgeCategory,
         int pageNumber,
         int pageSize);
+    
+    // Penalties methods
+    Task<(List<Penalty> penalties, int totalCount)> GetPenaltiesAsync(
+        string? awardCode,
+        int? classificationLevel,
+        string? penaltyType,
+        int pageNumber,
+        int pageSize);
 }

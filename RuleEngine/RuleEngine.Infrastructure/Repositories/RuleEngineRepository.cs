@@ -348,4 +348,66 @@ public class RuleEngineRepository : IRuleEngineRepository
 
         return await connection.QueryAsync<CalculatedPayRate>(sql, parameters);
     }
+
+    public async Task<(List<Penalty> penalties, int totalCount)> GetPenaltiesAsync(
+        string? awardCode,
+        int? classificationLevel,
+        string? penaltyType,
+        int pageNumber,
+        int pageSize)
+    {
+        using var connection = _context.CreateConnection();
+        
+        var sql = @"
+            SELECT 
+                id AS Id,
+                penalty_fixed_id AS PenaltyFixedId,
+                award_code AS AwardCode,
+                penalty_description AS PenaltyDescription,
+                rate AS Rate,
+                penalty_calculated_value AS PenaltyCalculatedValue,
+                classification_level AS ClassificationLevel,
+                clause_fixed_id AS ClauseFixedId,
+                clause_description AS ClauseDescription,
+                base_pay_rate_id AS BasePayRateId,
+                operative_from AS OperativeFrom,
+                operative_to AS OperativeTo,
+                version_number AS VersionNumber,
+                published_year AS PublishedYear,
+                penalty_type AS PenaltyType,
+                applicable_day AS ApplicableDay,
+                created_at AS CreatedAt,
+                updated_at AS UpdatedAt
+            FROM Stg_TblPenalties
+            WHERE (@award_code IS NULL OR award_code = @award_code)
+                AND (@classification_level IS NULL OR classification_level = @classification_level)
+                AND (@penalty_type IS NULL OR penalty_type = @penalty_type)
+            ORDER BY 
+                award_code,
+                classification_level,
+                penalty_fixed_id
+            OFFSET @offset ROWS
+            FETCH NEXT @pageSize ROWS ONLY";
+
+        var countSql = @"
+            SELECT COUNT(*)
+            FROM Stg_TblPenalties
+            WHERE (@award_code IS NULL OR award_code = @award_code)
+                AND (@classification_level IS NULL OR classification_level = @classification_level)
+                AND (@penalty_type IS NULL OR penalty_type = @penalty_type)";
+        
+        var parameters = new
+        {
+            award_code = awardCode,
+            classification_level = classificationLevel,
+            penalty_type = penaltyType,
+            offset = (pageNumber - 1) * pageSize,
+            pageSize
+        };
+
+        var penalties = await connection.QueryAsync<Penalty>(sql, parameters);
+        var totalCount = await connection.ExecuteScalarAsync<int>(countSql, parameters);
+
+        return (penalties.ToList(), totalCount);
+    }
 }
