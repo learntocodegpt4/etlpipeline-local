@@ -49,7 +49,7 @@ if (app.Environment.IsDevelopment())
     });
 }
 
-app.UseHttpsRedirection();
+// app.UseHttpsRedirection(); // Disabled for local development
 app.UseCors("AllowAll");
 app.UseAuthorization();
 app.MapControllers();

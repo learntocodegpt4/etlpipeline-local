@@ -52,20 +52,20 @@ export default function PenaltiesPage() {
     awardCodeFilter || ''
   );
 
-  // Define DataGrid columns
+  // Define DataGrid columns - using snake_case from database
   const columns: GridColDef[] = [
     {
-      field: 'penaltyFixedId',
+      field: 'penalty_fixed_id',
       headerName: 'Penalty ID',
       width: 120,
     },
     {
-      field: 'awardCode',
+      field: 'award_code',
       headerName: 'Award Code',
       width: 120,
     },
     {
-      field: 'penaltyDescription',
+      field: 'penalty_description',
       headerName: 'Description',
       flex: 2,
       minWidth: 300,
@@ -83,19 +83,19 @@ export default function PenaltiesPage() {
         params.value ? `${Number(params.value).toFixed(1)}%` : '-',
     },
     {
-      field: 'penaltyCalculatedValue',
+      field: 'penalty_calculated_value',
       headerName: 'Calculated Value',
       width: 150,
       renderCell: (params) =>
         params.value ? `$${Number(params.value).toFixed(2)}` : '-',
     },
     {
-      field: 'classificationLevel',
-      headerName: 'Level',
-      width: 80,
+      field: 'classification_level',
+      headerName: 'Classification Level',
+      width: 150,
     },
     {
-      field: 'clauseDescription',
+      field: 'clause_description',
       headerName: 'Clause',
       flex: 1,
       minWidth: 250,
@@ -106,7 +106,7 @@ export default function PenaltiesPage() {
       ),
     },
     {
-      field: 'basePayRateId',
+      field: 'base_pay_rate_id',
       headerName: 'Base Rate ID',
       width: 130,
     },
@@ -125,23 +125,23 @@ export default function PenaltiesPage() {
       'Description',
       'Rate',
       'Calculated Value',
-      'Classification Level',
+      'Classification',
       'Clause',
       'Base Pay Rate ID',
     ];
     const rows = penalties.map((p: any) => [
-      p.penaltyFixedId,
-      p.awardCode,
-      p.penaltyDescription,
+      p.penalty_fixed_id,
+      p.award_code,
+      p.penalty_description,
       p.rate,
-      p.penaltyCalculatedValue,
-      p.classificationLevel,
-      p.clauseDescription,
-      p.basePayRateId,
+      p.penalty_calculated_value,
+      p.classification_level,
+      p.clause_description,
+      p.base_pay_rate_id,
     ]);
 
     const csv = [headers.join(',')]
-      .concat(rows.map((r) => r.map((c) => `"${c || ''}"`).join(',')))
+      .concat(rows.map((r:any) => r.map((c:any) => `"${c || ''}"`).join(',')))
       .join('\n');
 
     const blob = new Blob([csv], { type: 'text/csv' });
@@ -208,7 +208,7 @@ export default function PenaltiesPage() {
             </CardContent>
           </Card>
         </Grid>
-        <Grid item xs={12} sm=6} md={3}>
+        <Grid item xs={12} sm={6} md={3}>
           <Card>
             <CardContent>
               <Typography variant="subtitle2" color="textSecondary">
@@ -367,7 +367,7 @@ export default function PenaltiesPage() {
             paginationModel={paginationModel}
             paginationMode="server"
             onPaginationModelChange={setPaginationModel}
-            getRowId={(row) => row.id}
+            getRowId={(row) => row.penalty_fixed_id || row.id}
             disableRowSelectionOnClick
             getRowHeight={() => 'auto'}
             sx={{

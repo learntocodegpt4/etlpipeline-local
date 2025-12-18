@@ -23,11 +23,14 @@ except Exception:
 
 DEFAULT_SERVER = "tcp:202.131.115.228,1433"
 TARGET_DB = "RosteredAIDBDev"
-SQL_FILES = [
-    "migrations/sql/001_create_base_tables.sql",
-    "migrations/sql/002_create_etl_tracking_tables.sql",
-    "migrations/sql/003_create_migration_history.sql",
-]
+SQL_DIR = pathlib.Path(__file__).parent / "sql"
+
+def discover_sql_files() -> list:
+    """Discover all .sql files in migrations/sql sorted by filename."""
+    if not SQL_DIR.exists():
+        return []
+    files = sorted(SQL_DIR.glob("*.sql"), key=lambda p: p.name)
+    return [str(p) for p in files]
 
 
 def read_sql_file(path: str) -> list:
@@ -105,7 +108,14 @@ def main():
 
         print(f"Connecting to database '{TARGET_DB}' to run migrations...")
         with pyodbc.connect(conn_str_target, autocommit=True) as conn:
-            run_migrations_on_db(conn, SQL_FILES)
+            sql_files = discover_sql_files()
+            if not sql_files:
+                print("No SQL files found in migrations/sql")
+            else:
+                print("Discovered SQL files:")
+                for f in sql_files:
+                    print(" -", pathlib.Path(f).name)
+            run_migrations_on_db(conn, sql_files)
             print("All migrations executed successfully.")
 
     except Exception as exc:

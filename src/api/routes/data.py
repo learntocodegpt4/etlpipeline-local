@@ -19,6 +19,7 @@ ALLOWED_TABLES = [
     "Stg_TblPayRates",
     "Stg_TblExpenseAllowances",
     "Stg_TblWageAllowances",
+    "Stg_TblPenalties",
 ]
 
 
@@ -57,15 +58,15 @@ async def preview_data(
         params: Dict[str, Any] = {"limit": page_size, "offset": offset}
 
         if award_code:
-            where_conditions.append("award_code = @award_code")
+            where_conditions.append("award_code = :award_code")
             params["award_code"] = award_code
 
         if code:
-            where_conditions.append("code = @code")
+            where_conditions.append("code = :code")
             params["code"] = code
 
         if name:
-            where_conditions.append("name LIKE @name")
+            where_conditions.append("name LIKE :name")
             params["name"] = f"%{name}%"
 
         where_clause = ""

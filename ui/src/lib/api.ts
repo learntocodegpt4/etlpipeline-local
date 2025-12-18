@@ -1,6 +1,8 @@
 import useSWR, { mutate as globalMutate } from 'swr';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8081/api';
+// Use relative URL to support both internet and intranet IPs through Nginx proxy
+// Browser will automatically use the current host/IP accessed by user
+const API_URL = process.env.NEXT_PUBLIC_API_URL || '/etlapi/api';
 
 const fetcher = async (url: string) => {
   const res = await fetch(url);
@@ -166,7 +168,7 @@ export async function deleteJob(jobId: string) {
   return res.json();
 }
 
-// Penalties hooks
+// Penalties hooks - using data preview endpoint for Stg_TblPenalties
 export function usePenalties(
   awardCode?: string,
   classificationLevel?: number,
@@ -176,24 +178,24 @@ export function usePenalties(
 ) {
   const params = new URLSearchParams({
     page: page.toString(),
-    pageSize: pageSize.toString(),
+    page_size: pageSize.toString(),
   });
-  if (awardCode) params.set('awardCode', awardCode);
-  if (classificationLevel) params.set('classificationLevel', classificationLevel.toString());
-  if (penaltyType) params.set('penaltyType', penaltyType);
+  if (awardCode) params.set('award_code', awardCode);
+  // Note: Python ETL API doesn't support classificationLevel and penaltyType filters yet
+  // These can be added to data.py if needed
 
   const { data, error, isLoading, mutate } = useSWR(
-    `http://localhost:5000/api/penalties?${params}`,
+    `${API_URL}/data/preview/Stg_TblPenalties?${params}`,
     fetcher,
     { dedupingInterval: 1000 }
   );
 
   return {
-    penalties: data?.penalties || [],
-    totalCount: data?.totalCount || 0,
+    penalties: data?.data || [],
+    totalCount: data?.total || 0,
     page: data?.page || 1,
-    pageSize: data?.pageSize || 100,
-    totalPages: data?.totalPages || 0,
+    pageSize: data?.page_size || 100,
+    totalPages: Math.ceil((data?.total || 0) / (data?.page_size || 100)),
     isLoading,
     error,
     mutate,
@@ -201,13 +203,23 @@ export function usePenalties(
 }
 
 export function usePenaltyStatistics(awardCode: string) {
+  // For statistics, we can fetch all penalties for the award (or first page)
+  const params = new URLSearchParams({
+    page: '1',
+    page_size: '1',
+  });
+  if (awardCode) params.set('award_code', awardCode);
+
   const { data, error, isLoading } = useSWR(
-    awardCode ? `http://localhost:5000/api/penalties/statistics?awardCode=${awardCode}` : null,
+    awardCode ? `${API_URL}/data/preview/Stg_TblPenalties?${params}` : null,
     fetcher
   );
 
   return {
-    statistics: data,
+    statistics: {
+      totalPenalties: data?.total || 0,
+      awardCode: awardCode,
+    },
     isLoading,
     error,
   };
