@@ -1,0 +1,129 @@
+# Azure DevOps pipeline to build and deploy Dockerized apps on a self-hosted Windows 11 Pro agent
+# Requirements on agent: Git, Docker Desktop, docker-compose, Node.js, Python 3.11, .NET SDK 10, and network access to SQL Server
+
+trigger:
+  branches:
+    include:
+      - main
+      - master
+      - copilot/*
+
+pr:
+  branches:
+    include:
+      - main
+      - master
+
+variables:
+  DOCKER_REGISTRY: ''          # e.g., myregistry.azurecr.io (optional)
+  DOCKER_REPO_PREFIX: 'etl'    # e.g., etl (prefix for images)
+  IMAGE_TAG: '$(Build.BuildId)'
+  USE_LATEST_TAG: 'true'
+  COMPOSE_FILE: 'docker/docker-compose.yml'
+
+stages:
+- stage: Build
+  displayName: Build images
+  jobs:
+  - job: BuildImages
+    pool:
+      vmImage: 'windows-2022'
+    steps:
+    - checkout: self
+      fetchDepth: 0
+
+    - task: PowerShell@2
+      displayName: Docker version
+      inputs:
+        targetType: inline
+        script: |
+          docker version
+
+    # Build Python API image
+    - task: PowerShell@2
+      displayName: Build API image
+      inputs:
+        targetType: inline
+        script: |
+          $tag = "api:$(IMAGE_TAG)"
+          docker build -f docker/Dockerfile -t $tag .
+          if ("$(USE_LATEST_TAG)" -eq "true") { docker tag $tag api:latest }
+
+    # Build UI image
+    - task: PowerShell@2
+      displayName: Build UI image
+      inputs:
+        targetType: inline
+        script: |
+          $tag = "ui:$(IMAGE_TAG)"
+          docker build -f docker/Dockerfile.ui -t $tag .
+          if ("$(USE_LATEST_TAG)" -eq "true") { docker tag $tag ui:latest }
+
+    # Build .NET RuleEngine image
+    - task: PowerShell@2
+      displayName: Build RuleEngine image
+      inputs:
+        targetType: inline
+        script: |
+          $tag = "ruleengine:$(IMAGE_TAG)"
+          docker build -f docker/Dockerfile.ruleengine -t $tag .
+          if ("$(USE_LATEST_TAG)" -eq "true") { docker tag $tag ruleengine:latest }
+
+    # Optional: Login and push images to registry
+    - ${{ if ne(variables.DOCKER_REGISTRY, '') }}:
+      - task: PowerShell@2
+        displayName: Docker login
+        inputs:
+          targetType: inline
+          script: |
+            echo "Logging into $(DOCKER_REGISTRY)"
+            echo $(DOCKER_PASSWORD) | docker login $(DOCKER_REGISTRY) --username $(DOCKER_USERNAME) --password-stdin
+
+      - task: PowerShell@2
+        displayName: Tag and push images
+        inputs:
+          targetType: inline
+          script: |
+            $reg = "$(DOCKER_REGISTRY)"
+            $prefix = "$(DOCKER_REPO_PREFIX)"
+            foreach ($img in @('api','ui','ruleengine')) {
+              docker tag "$img:$(IMAGE_TAG)" "$reg/$prefix/$img:$(IMAGE_TAG)"
+              if ("$(USE_LATEST_TAG)" -eq "true") { docker tag "$img:latest" "$reg/$prefix/$img:latest" }
+              docker push "$reg/$prefix/$img:$(IMAGE_TAG)"
+              if ("$(USE_LATEST_TAG)" -eq "true") { docker push "$reg/$prefix/$img:latest" }
+            }
+
+- stage: Deploy
+  displayName: Deploy with Docker Compose (self-hosted agent)
+  dependsOn: Build
+  condition: succeeded()
+  jobs:
+  - job: ComposeUp
+    displayName: docker compose up
+    pool:
+      name: Default  # Use your self-hosted Windows 11 Pro agent pool name
+    steps:
+    - checkout: self
+    - task: PowerShell@2
+      displayName: Show compose file
+      inputs:
+        targetType: inline
+        script: |
+          Get-Content $(COMPOSE_FILE)
+
+    - task: PowerShell@2
+      displayName: Compose up
+      inputs:
+        targetType: inline
+        script: |
+          docker compose -f $(COMPOSE_FILE) pull || echo "No remote images to pull"
+          docker compose -f $(COMPOSE_FILE) build --no-cache
+          docker compose -f $(COMPOSE_FILE) up -d
+
+    - task: PowerShell@2
+      displayName: Check containers
+      inputs:
+        targetType: inline
+        script: |
+          docker ps
+          docker compose -f $(COMPOSE_FILE) ps

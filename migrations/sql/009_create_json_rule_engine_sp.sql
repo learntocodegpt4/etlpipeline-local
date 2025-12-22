@@ -55,7 +55,7 @@ BEGIN
     -- Casual Loading Rule
     IF @employment_type = 'CASUAL'
     BEGIN
-        INSERT INTO #ApplicableRules (rule_id, rule_name, priority, multiplier, apply_to, note)
+        INSERT INTO #ApplicableRules (rule_id, rule_name, priority, multiplier, flat_amount, apply_to, note)
         SELECT 
             rule_id,
             rule_name,
@@ -75,7 +75,7 @@ BEGIN
     -- Day of Week Rules (Saturday, Sunday)
     IF @day_of_week IN ('Saturday', 'Sunday')
     BEGIN
-        INSERT INTO #ApplicableRules (rule_id, rule_name, priority, multiplier, apply_to, note)
+        INSERT INTO #ApplicableRules (rule_id, rule_name, priority, multiplier, flat_amount, apply_to, note)
         SELECT 
             rule_id,
             rule_name,
@@ -99,7 +99,7 @@ BEGIN
     -- Public Holiday Rules
     IF @day_type = 'public_holiday'
     BEGIN
-        INSERT INTO #ApplicableRules (rule_id, rule_name, priority, multiplier, apply_to, note)
+        INSERT INTO #ApplicableRules (rule_id, rule_name, priority, multiplier, flat_amount, apply_to, note)
         SELECT 
             rule_id,
             rule_name,
@@ -119,7 +119,7 @@ BEGIN
     -- Shift Type Rules (Night, Evening)
     IF @shift_type IN ('night', 'evening', 'afternoon')
     BEGIN
-        INSERT INTO #ApplicableRules (rule_id, rule_name, priority, multiplier, apply_to, note)
+        INSERT INTO #ApplicableRules (rule_id, rule_name, priority, multiplier, flat_amount, apply_to, note)
         SELECT 
             rule_id,
             rule_name,
@@ -145,7 +145,7 @@ BEGIN
         -- First 2 hours overtime
         IF @overtime_hours <= 2
         BEGIN
-            INSERT INTO #ApplicableRules (rule_id, rule_name, priority, multiplier, apply_to, note)
+            INSERT INTO #ApplicableRules (rule_id, rule_name, priority, multiplier, flat_amount, apply_to, note)
             SELECT 
                 rule_id,
                 rule_name,
@@ -165,7 +165,7 @@ BEGIN
         ELSE
         BEGIN
             -- After 2 hours overtime
-            INSERT INTO #ApplicableRules (rule_id, rule_name, priority, multiplier, apply_to, note)
+            INSERT INTO #ApplicableRules (rule_id, rule_name, priority, multiplier, flat_amount, apply_to, note)
             SELECT 
                 rule_id,
                 rule_name,
@@ -546,25 +546,23 @@ BEGIN
         @allowances = total_allowances
     FROM #TempResult;
     
-    -- Insert into TblCalculatedPayRates
-    INSERT INTO TblCalculatedPayRates (
-        award_code, classification_fixed_id, classification_name,
-        base_pay_rate_id, base_rate, base_rate_type,
-        employment_type, employee_age_category,
-        day_type, shift_type,
-        calculated_hourly_rate, calculation_steps,
-        applicable_allowance_total,
-        effective_from, is_active
-    )
-    VALUES (
-        @award_code, @class_id, @class_name,
-        @rate_id, @base_rate, 'HOURLY',
-        @emp_type, @age_cat,
-        @day_type, @shift_type,
-        @calc_rate, @calc_steps,
-        @allowances,
-        GETDATE(), 1
-    );
+    -- Return derived rate without inserting
+    SELECT
+        @award_code AS award_code,
+        @class_id AS classification_fixed_id,
+        @class_name AS classification_name,
+        @rate_id AS base_pay_rate_id,
+        @base_rate AS base_rate,
+        'HOURLY' AS base_rate_type,
+        @emp_type AS employment_type,
+        @age_cat AS employee_age_category,
+        @day_type AS day_type,
+        @shift_type AS shift_type,
+        @calc_rate AS calculated_hourly_rate,
+        @calc_steps AS calculation_steps,
+        @allowances AS applicable_allowance_total,
+        GETDATE() AS effective_from,
+        1 AS is_active;
     
     DROP TABLE #TempResult;
 END
@@ -573,5 +571,5 @@ GO
 PRINT 'JSON rule engine stored procedures created successfully';
 PRINT 'sp_EvaluateJSONPenaltyRules - Evaluate rules for single scenario';
 PRINT 'sp_CalculatePayRatesFromJSONRules - Bulk calculate all combinations';
-PRINT 'sp_InsertCalculatedRateFromJSON - Helper procedure for inserting rates';
+PRINT 'sp_InsertCalculatedRateFromJSON - Helper procedure for deriving rates';
 GO

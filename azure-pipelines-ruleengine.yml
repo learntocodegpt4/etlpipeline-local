@@ -1,0 +1,144 @@
+# Azure DevOps: .NET RuleEngine API - independent build & deploy
+# Builds only when RuleEngine files change and deploys only the ruleengine service
+
+trigger:
+  branches:
+    include:
+      - main
+      - master
+      - copilot/*
+  paths:
+    include:
+      - RuleEngine/**
+      - docker/Dockerfile.ruleengine
+      - docker/docker-compose.yml
+    exclude:
+      - src/**
+      - ui/**
+
+pr:
+  branches:
+    include:
+      - main
+      - master
+  paths:
+    include:
+      - RuleEngine/**
+      - docker/Dockerfile.ruleengine
+      - docker/docker-compose.yml
+    exclude:
+      - src/**
+      - ui/**
+
+variables:
+  COMPOSE_FILE: 'docker/docker-compose.yml'
+  SERVICE_NAME: 'ruleengine'
+  IMAGE_TAG: '$(Build.BuildId)'
+  USE_LATEST_TAG: 'true'
+  DOCKER_REGISTRY: ''
+  DOCKER_REPO_PREFIX: 'etl'
+  DEPLOY_TARGET: 'docker'  # docker | k8s
+  K8S_MANIFEST: 'k8s/ruleengine.yaml'
+  KUBECONFIG_PATH: 'C:\\Users\\svc-azureagent\\.kube\\config'
+
+stages:
+- stage: Build
+  displayName: Build RuleEngine image
+  jobs:
+  - job: BuildImage
+    pool:
+      vmImage: 'windows-2022'
+    steps:
+    - checkout: self
+    - task: PowerShell@2
+      displayName: Build RuleEngine Docker image
+      inputs:
+        targetType: inline
+        script: |
+          $tag = "$(SERVICE_NAME):$(IMAGE_TAG)"
+          docker build -f docker/Dockerfile.ruleengine -t $tag .
+          if ("$(USE_LATEST_TAG)" -eq "true") { docker tag $tag "$(SERVICE_NAME):latest" }
+    - ${{ if ne(variables.DOCKER_REGISTRY, '') }}:
+      - task: PowerShell@2
+        displayName: Docker login
+        inputs:
+          targetType: inline
+          script: |
+            echo $(DOCKER_PASSWORD) | docker login $(DOCKER_REGISTRY) --username $(DOCKER_USERNAME) --password-stdin
+      - task: PowerShell@2
+        displayName: Push image
+        inputs:
+          targetType: inline
+          script: |
+            $reg = "$(DOCKER_REGISTRY)"
+            $prefix = "$(DOCKER_REPO_PREFIX)"
+            docker tag "$(SERVICE_NAME):$(IMAGE_TAG)" "$reg/$prefix/$(SERVICE_NAME):$(IMAGE_TAG)"
+            if ("$(USE_LATEST_TAG)" -eq "true") { docker tag "$(SERVICE_NAME):latest" "$reg/$prefix/$(SERVICE_NAME):latest" }
+            docker push "$reg/$prefix/$(SERVICE_NAME):$(IMAGE_TAG)"
+            if ("$(USE_LATEST_TAG)" -eq "true") { docker push "$reg/$prefix/$(SERVICE_NAME):latest" }
+
+- stage: Deploy
+  displayName: Deploy RuleEngine
+  dependsOn: Build
+  jobs:
+  - ${{ if eq(variables.DEPLOY_TARGET, 'docker') }}:
+    - job: ComposeUp
+      displayName: Docker Compose deploy
+      pool:
+        name: local-dev-agents
+        demands:
+          - agent.os -equals Windows_NT
+      steps:
+      - checkout: self
+      - task: PowerShell@2
+        displayName: Compose build & up for RuleEngine
+        inputs:
+          targetType: inline
+          script: |
+            docker compose -f $(COMPOSE_FILE) build --no-cache $(SERVICE_NAME)
+            docker compose -f $(COMPOSE_FILE) up -d $(SERVICE_NAME)
+      - task: PowerShell@2
+        displayName: Check service
+        inputs:
+          targetType: inline
+          script: |
+            docker compose -f $(COMPOSE_FILE) ps $(SERVICE_NAME)
+
+  - ${{ if eq(variables.DEPLOY_TARGET, 'k8s') }}:
+    - job: K8sDeploy
+      displayName: Kubernetes deploy (RuleEngine)
+      pool:
+        name: local-dev-agents
+        demands:
+          - agent.os -equals Windows_NT
+      steps:
+      - checkout: self
+      - task: PowerShell@2
+        displayName: Print agent & kubectl
+        inputs:
+          targetType: inline
+          script: |
+            whoami
+            docker --version
+            kubectl version --client
+      - task: PowerShell@2
+        displayName: Prepare k8s manifest
+        inputs:
+          targetType: inline
+          script: |
+            (Get-Content $(K8S_MANIFEST)) | Set-Content deploy-temp.yaml
+            Get-Content deploy-temp.yaml
+      - task: PowerShell@2
+        displayName: kubectl apply
+        inputs:
+          targetType: inline
+          script: |
+            kubectl --kubeconfig "$(KUBECONFIG_PATH)" apply -f deploy-temp.yaml
+      - task: PowerShell@2
+        displayName: Verify rollout
+        inputs:
+          targetType: inline
+          script: |
+            kubectl --kubeconfig "$(KUBECONFIG_PATH)" rollout status deployment/ruleengine --timeout=120s
+            kubectl --kubeconfig "$(KUBECONFIG_PATH)" get pods -l app=ruleengine -o wide
+            kubectl --kubeconfig "$(KUBECONFIG_PATH)" get svc ruleengine -o wide

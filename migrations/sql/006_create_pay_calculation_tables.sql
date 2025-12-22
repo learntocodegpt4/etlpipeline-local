@@ -41,12 +41,27 @@ CREATE TABLE TblPenaltyRates (
 );
 GO
 
+IF NOT EXISTS (
+        SELECT 1 FROM sys.indexes 
+        WHERE name = 'ix_tblpenaltyrates_award' 
+            AND object_id = OBJECT_ID('dbo.TblPenaltyRates')
+)
 CREATE INDEX ix_tblpenaltyrates_award ON TblPenaltyRates(award_code);
 GO
 
+IF NOT EXISTS (
+        SELECT 1 FROM sys.indexes 
+        WHERE name = 'ix_tblpenaltyrates_award_type' 
+            AND object_id = OBJECT_ID('dbo.TblPenaltyRates')
+)
 CREATE INDEX ix_tblpenaltyrates_award_type ON TblPenaltyRates(award_code, penalty_type);
 GO
 
+IF NOT EXISTS (
+        SELECT 1 FROM sys.indexes 
+        WHERE name = 'ix_tblpenaltyrates_active' 
+            AND object_id = OBJECT_ID('dbo.TblPenaltyRates')
+)
 CREATE INDEX ix_tblpenaltyrates_active ON TblPenaltyRates(is_active, effective_from, effective_to);
 GO
 
@@ -77,9 +92,19 @@ CREATE TABLE TblJuniorRates (
 );
 GO
 
+IF NOT EXISTS (
+        SELECT 1 FROM sys.indexes 
+        WHERE name = 'ix_tbljuniorrates_award' 
+            AND object_id = OBJECT_ID('dbo.TblJuniorRates')
+)
 CREATE INDEX ix_tbljuniorrates_award ON TblJuniorRates(award_code);
 GO
 
+IF NOT EXISTS (
+        SELECT 1 FROM sys.indexes 
+        WHERE name = 'ix_tbljuniorrates_age' 
+            AND object_id = OBJECT_ID('dbo.TblJuniorRates')
+)
 CREATE INDEX ix_tbljuniorrates_age ON TblJuniorRates(age_from, age_to);
 GO
 
@@ -112,6 +137,11 @@ CREATE TABLE TblCasualLoadings (
 );
 GO
 
+IF NOT EXISTS (
+        SELECT 1 FROM sys.indexes 
+        WHERE name = 'ix_tblcasualloadings_award' 
+            AND object_id = OBJECT_ID('dbo.TblCasualLoadings')
+)
 CREATE INDEX ix_tblcasualloadings_award ON TblCasualLoadings(award_code);
 GO
 
@@ -149,9 +179,19 @@ CREATE TABLE TblAllowanceConditions (
 );
 GO
 
+IF NOT EXISTS (
+        SELECT 1 FROM sys.indexes 
+        WHERE name = 'ix_tblallowanceconditions_award' 
+            AND object_id = OBJECT_ID('dbo.TblAllowanceConditions')
+)
 CREATE INDEX ix_tblallowanceconditions_award ON TblAllowanceConditions(award_code);
 GO
 
+IF NOT EXISTS (
+        SELECT 1 FROM sys.indexes 
+        WHERE name = 'ix_tblallowanceconditions_type' 
+            AND object_id = OBJECT_ID('dbo.TblAllowanceConditions')
+)
 CREATE INDEX ix_tblallowanceconditions_type ON TblAllowanceConditions(allowance_type);
 GO
 
@@ -185,9 +225,19 @@ CREATE TABLE TblApprenticeRates (
 );
 GO
 
+IF NOT EXISTS (
+        SELECT 1 FROM sys.indexes 
+        WHERE name = 'ix_tblapprenticerates_award' 
+            AND object_id = OBJECT_ID('dbo.TblApprenticeRates')
+)
 CREATE INDEX ix_tblapprenticerates_award ON TblApprenticeRates(award_code);
 GO
 
+IF NOT EXISTS (
+        SELECT 1 FROM sys.indexes 
+        WHERE name = 'ix_tblapprenticerates_type_year' 
+            AND object_id = OBJECT_ID('dbo.TblApprenticeRates')
+)
 CREATE INDEX ix_tblapprenticerates_type_year ON TblApprenticeRates(apprentice_type, year_or_level);
 GO
 
@@ -265,21 +315,51 @@ CREATE TABLE TblCalculatedPayRates (
 );
 GO
 
+IF NOT EXISTS (
+        SELECT 1 FROM sys.indexes 
+        WHERE name = 'ix_tblcalculatedpayrates_award' 
+            AND object_id = OBJECT_ID('dbo.TblCalculatedPayRates')
+)
 CREATE INDEX ix_tblcalculatedpayrates_award ON TblCalculatedPayRates(award_code);
 GO
 
+IF NOT EXISTS (
+        SELECT 1 FROM sys.indexes 
+        WHERE name = 'ix_tblcalculatedpayrates_award_class' 
+            AND object_id = OBJECT_ID('dbo.TblCalculatedPayRates')
+)
 CREATE INDEX ix_tblcalculatedpayrates_award_class ON TblCalculatedPayRates(award_code, classification_fixed_id);
 GO
 
+IF NOT EXISTS (
+        SELECT 1 FROM sys.indexes 
+        WHERE name = 'ix_tblcalculatedpayrates_scenario' 
+            AND object_id = OBJECT_ID('dbo.TblCalculatedPayRates')
+)
 CREATE INDEX ix_tblcalculatedpayrates_scenario ON TblCalculatedPayRates(employment_type, day_type, shift_type);
 GO
 
+IF NOT EXISTS (
+        SELECT 1 FROM sys.indexes 
+        WHERE name = 'ix_tblcalculatedpayrates_age' 
+            AND object_id = OBJECT_ID('dbo.TblCalculatedPayRates')
+)
 CREATE INDEX ix_tblcalculatedpayrates_age ON TblCalculatedPayRates(employee_age_category);
 GO
 
+IF NOT EXISTS (
+        SELECT 1 FROM sys.indexes 
+        WHERE name = 'ix_tblcalculatedpayrates_active' 
+            AND object_id = OBJECT_ID('dbo.TblCalculatedPayRates')
+)
 CREATE INDEX ix_tblcalculatedpayrates_active ON TblCalculatedPayRates(is_active, effective_from, effective_to);
 GO
 
+IF NOT EXISTS (
+        SELECT 1 FROM sys.indexes 
+        WHERE name = 'ix_tblcalculatedpayrates_rate' 
+            AND object_id = OBJECT_ID('dbo.TblCalculatedPayRates')
+)
 CREATE INDEX ix_tblcalculatedpayrates_rate ON TblCalculatedPayRates(calculated_hourly_rate);
 GO
 
@@ -303,9 +383,19 @@ CREATE TABLE TblPayCalculationLog (
 );
 GO
 
+IF NOT EXISTS (
+        SELECT 1 FROM sys.indexes 
+        WHERE name = 'ix_tblpaycalculationlog_award' 
+            AND object_id = OBJECT_ID('dbo.TblPayCalculationLog')
+)
 CREATE INDEX ix_tblpaycalculationlog_award ON TblPayCalculationLog(award_code);
 GO
 
+IF NOT EXISTS (
+        SELECT 1 FROM sys.indexes 
+        WHERE name = 'ix_tblpaycalculationlog_date' 
+            AND object_id = OBJECT_ID('dbo.TblPayCalculationLog')
+)
 CREATE INDEX ix_tblpaycalculationlog_date ON TblPayCalculationLog(calculation_started_at);
 GO
 
