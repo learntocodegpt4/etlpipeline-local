@@ -77,9 +77,8 @@ services:
       dockerfile: docker/Dockerfile.ruleengine
     container_name: etl-ruleengine
     environment:
+      - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_URLS=http://0.0.0.0:5016
-      # Add any required connection strings or settings here, e.g.:
-      # - ConnectionStrings__SqlServer=Server=host.docker.internal,1433;Database=RosteredAIDBDev;User Id=sa;Password=${MSSQL_PASSWORD:-Piyush@23D!gita1};TrustServerCertificate=True
     ports:
       - "8082:5016"  # host:container
     networks:
