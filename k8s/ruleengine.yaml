@@ -1,0 +1,42 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ruleengine
+  labels:
+    app: ruleengine
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ruleengine
+  template:
+    metadata:
+      labels:
+        app: ruleengine
+    spec:
+      containers:
+        - name: ruleengine
+          image: your-registry.example.com/etl/ruleengine:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 5016
+          env:
+            - name: ASPNETCORE_URLS
+              value: http://0.0.0.0:5016
+            # - name: ConnectionStrings__SqlServer
+            #   value: Server=mssql.default.svc.cluster.local,1433;Database=RosteredAIDBDev;User Id=sa;Password=REDACTED;TrustServerCertificate=True
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ruleengine
+  labels:
+    app: ruleengine
+spec:
+  selector:
+    app: ruleengine
+  ports:
+    - name: http
+      port: 80
+      targetPort: 5016
+  type: ClusterIP

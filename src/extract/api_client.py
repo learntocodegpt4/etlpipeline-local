@@ -239,3 +239,23 @@ class APIClient:
             f"/awards/{award_code}/wage-allowances",
             params={"page": page, "limit": limit},
         )
+
+    async def get_penalties(
+        self,
+        award_code: str,
+        page: int = 1,
+        limit: int = 100,
+        penalty_fixed_id: Optional[int] = None,
+        classification_level: Optional[int] = None,
+    ) -> Dict[str, Any]:
+        """Get penalties for an award"""
+        params: Dict[str, Any] = {"page": page, "limit": limit}
+        if penalty_fixed_id is not None:
+            params["penalty_fixed_id"] = penalty_fixed_id
+        if classification_level is not None:
+            params["classification_level"] = classification_level
+
+        return await self.get(
+            f"/awards/{award_code}/penalties",
+            params=params,
+        )

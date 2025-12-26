@@ -1,9 +1,10 @@
-# FWC Modern Awards ETL Pipeline
+# FWC Modern Awards ETL Pipeline with Rule Engine
 
-A complete Python ETL pipeline that extracts data from the FWC (Fair Work Commission) Modern Awards REST API, transforms JSON responses, and loads them into MS SQL Server tables.
+A complete Python ETL pipeline that extracts data from the FWC (Fair Work Commission) Modern Awards REST API, transforms JSON responses, and loads them into MS SQL Server tables. Includes a .NET-based Rule Engine microservice for managing awards, pay conditions, and compliance rules.
 
 ## Features
 
+### ETL Pipeline
 - **Modular Architecture**: Reusable ETL core library that runs standalone, in Docker, or on Azure
 - **Extract Module**: HTTP client with retry logic using `httpx` + `tenacity`
 - **Transform Module**: Data validation, type conversion, and JSON flattening
@@ -13,12 +14,23 @@ A complete Python ETL pipeline that extracts data from the FWC (Fair Work Commis
 - **Docker Support**: Container deployment with Docker Compose
 - **Nginx Reverse Proxy**: Configuration for external access on port 8081
 
+### Rule Engine (NEW)
+- **.NET Microservice**: Built with .NET 10 using Clean Architecture and CQRS pattern
+- **SQL Stored Procedures**: Efficient data processing and rule compilation
+- **Awards Management**: Compile and manage FWC awards with statistics
+- **Rules Engine**: Simple and complex rules for payroll automation and compliance
+- **Custom Awards**: Create custom awards for tenants while maintaining FWC compliance
+- **JSON Export**: Generate comprehensive JSON outputs for integration
+- **Audit Trail**: Complete execution logging and performance tracking
+- **Unit Tested**: Comprehensive test coverage with xUnit, Moq, and FluentAssertions
+
 ## Quick Start
 
 ### Prerequisites
 
 - Python 3.11+
 - Node.js 20+
+- .NET 10 SDK (for Rule Engine)
 - MS SQL Server (existing container or instance)
 - Nginx (for reverse proxy)
 - Docker & Docker Compose (optional)
@@ -53,8 +65,13 @@ A complete Python ETL pipeline that extracts data from the FWC (Fair Work Commis
 5. **Run database migrations:**
    ```bash
    # Using sqlcmd or your preferred SQL client
+   # ETL Pipeline tables
    sqlcmd -S localhost -d etl_pipeline -i migrations/sql/001_create_base_tables.sql
    sqlcmd -S localhost -d etl_pipeline -i migrations/sql/002_create_etl_tracking_tables.sql
+   
+   # Rule Engine tables and stored procedures
+   sqlcmd -S localhost -d etl_pipeline -i migrations/sql/004_create_rules_tables.sql
+   sqlcmd -S localhost -d etl_pipeline -i migrations/sql/005_create_stored_procedures.sql
    ```
    Migrations using python
       .\venv\Scripts\Activate.ps1
@@ -139,8 +156,19 @@ etlpipeline-local/
 │   ├── src/app/            # App router pages
 │   ├── src/components/     # React components
 │   └── src/lib/            # API client & utilities
+├── RuleEngine/             # .NET Rule Engine microservice (NEW)
+│   ├── RuleEngine.Domain/         # Domain entities and enums
+│   ├── RuleEngine.Application/    # CQRS commands and queries
+│   ├── RuleEngine.Infrastructure/ # Database and repositories
+│   ├── RuleEngine.API/            # REST API controllers
+│   └── RuleEngine.Tests/          # Unit tests
 ├── migrations/sql/         # SQL migration scripts
+│   ├── 001_create_base_tables.sql
+│   ├── 002_create_etl_tracking_tables.sql
+│   ├── 004_create_rules_tables.sql         # NEW
+│   └── 005_create_stored_procedures.sql    # NEW
 ├── docs/                   # Documentation
+│   ├── stored_procedures_documentation.md  # NEW
 │   ├── config_setup.md     # Nginx configuration
 │   ├── azure_migration.md  # Azure deployment guide
 │   └── api_documentation.md
@@ -220,15 +248,76 @@ docker-compose down
 
 ## Database Schema
 
-Tables created by migrations:
-- `awards` - Award master data
-- `classifications` - Award classifications
-- `pay_rates` - Pay rate information
-- `expense_allowances` - Expense allowance data
-- `wage_allowances` - Wage allowance data
-- `etl_job_logs` - Job execution history
-- `etl_job_details` - Step-by-step logs
+### ETL Pipeline Tables
+- `Stg_TblAwards` - Award master data
+- `Stg_TblClassifications` - Award classifications
+- `Stg_TblPayRates` - Pay rate information
+- `Stg_TblExpenseAllowances` - Expense allowance data
+- `Stg_TblWageAllowances` - Wage allowance data
+- `Tbletl_job_logs` - Job execution history
+- `Tbletl_job_details` - Step-by-step logs
 - `raw_api_responses` - Raw JSON storage
+
+### Rule Engine Tables (NEW)
+- `TblAwardsSummary` - Compiled awards with statistics
+- `TblRules` - Simple and complex rule definitions
+- `TblAwardRules` - Award-rule mappings
+- `TblCustomAwards` - Custom awards for tenants
+- `TblRuleExecutionLog` - Rule execution audit trail
+
+## Rule Engine
+
+The Rule Engine is a .NET microservice that provides advanced awards and compliance management capabilities. See [RuleEngine/README.md](RuleEngine/README.md) for detailed documentation.
+
+### Quick Start - Rule Engine
+
+1. **Build the solution:**
+   ```bash
+   cd RuleEngine
+   dotnet build
+   ```
+
+2. **Run tests:**
+   ```bash
+   dotnet test
+   ```
+
+3. **Start the API:**
+   ```bash
+   dotnet run --project RuleEngine.API
+   ```
+
+4. **Access Swagger UI:**
+   Open `http://localhost:5000/swagger` in your browser
+
+### Initialize Rules
+
+After starting the Rule Engine API, initialize the basic rules and compile awards:
+
+```bash
+# Initialize rules (one-time setup)
+curl -X POST "http://localhost:5000/api/ruleengine/compile-awards" \
+  -H "Content-Type: application/json" \
+  -d '{}'
+```
+
+### Key Features
+
+- **12 Predefined Rules**: 6 simple and 6 complex rules for compliance and automation
+- **Awards Compilation**: Analyze staging data and generate comprehensive summaries
+- **Custom Awards**: Create tenant-specific awards with FWC compliance
+- **JSON Export**: Generate structured JSON for integration with other systems
+- **Audit Logging**: Track all rule executions with timing and results
+
+### API Endpoints
+
+- `GET /api/awards` - Get all awards or filter by criteria
+- `GET /api/rules` - Get all rules or filter by type/category
+- `POST /api/ruleengine/compile-awards` - Compile awards from staging data
+- `POST /api/ruleengine/apply-rule` - Apply a rule to an award
+- `GET /api/ruleengine/award-rules-json` - Export rules as JSON
+
+See [RuleEngine/README.md](RuleEngine/README.md) and [docs/stored_procedures_documentation.md](docs/stored_procedures_documentation.md) for complete documentation.
 
 ## UI Features
 

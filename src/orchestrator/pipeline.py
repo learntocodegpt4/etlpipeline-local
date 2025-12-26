@@ -12,6 +12,7 @@ from src.extract.extractors import (
     PayRatesExtractor,
     ExpenseAllowancesExtractor,
     WageAllowancesExtractor,
+    PenaltiesExtractor,
 )
 from src.transform.transformers import (
     AwardsTransformer,
@@ -19,6 +20,7 @@ from src.transform.transformers import (
     PayRatesTransformer,
     ExpenseAllowancesTransformer,
     WageAllowancesTransformer,
+    PenaltiesTransformer,
 )
 from src.load.bulk_loader import BulkLoader, RawDataLoader
 from src.load.sql_connector import SQLConnector, get_connector
@@ -71,6 +73,7 @@ class ETLPipeline:
         pipeline.add_step(PayRatesExtractor(api_client, self.award_codes, page_size))
         pipeline.add_step(ExpenseAllowancesExtractor(api_client, self.award_codes, page_size))
         pipeline.add_step(WageAllowancesExtractor(api_client, self.award_codes, page_size))
+        pipeline.add_step(PenaltiesExtractor(api_client, self.award_codes, page_size))
 
         # Transform steps
         pipeline.add_step(AwardsTransformer())
@@ -78,6 +81,7 @@ class ETLPipeline:
         pipeline.add_step(PayRatesTransformer())
         pipeline.add_step(ExpenseAllowancesTransformer())
         pipeline.add_step(WageAllowancesTransformer())
+        pipeline.add_step(PenaltiesTransformer())
 
         # Load steps
         pipeline.add_step(BulkLoader(
@@ -108,6 +112,12 @@ class ETLPipeline:
             source_key="wage_allowances_transformer",
             table_name="Stg_TblWageAllowances",
             key_columns=["wage_allowance_fixed_id", "award_code", "published_year"],
+            connector=self.connector,
+        ))
+        pipeline.add_step(BulkLoader(
+            source_key="penalties_transformer",
+            table_name="Stg_TblPenalties",
+            key_columns=["penalty_fixed_id", "award_code", "published_year"],
             connector=self.connector,
         ))
 

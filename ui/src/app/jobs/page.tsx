@@ -14,6 +14,10 @@ import {
   DialogContent,
   DialogActions,
   DialogContentText,
+  TextField,
+  FormControlLabel,
+  Checkbox,
+  FormHelperText,
 } from '@mui/material';
 import { DataGrid, GridColDef, GridPaginationModel } from '@mui/x-data-grid';
 import { Refresh, PlayArrow } from '@mui/icons-material';
@@ -34,6 +38,8 @@ export default function JobsPage() {
   const [triggerDialogOpen, setTriggerDialogOpen] = useState(false);
   const [triggering, setTriggering] = useState(false);
   const [triggerError, setTriggerError] = useState<string | null>(null);
+  const [awardCodesInput, setAwardCodesInput] = useState('');
+  const [triggerAllAwards, setTriggerAllAwards] = useState(true);
 
   const { jobs, total, isLoading, error, mutate: refreshJobs } = useJobs(
     paginationModel.page + 1,
@@ -142,8 +148,24 @@ export default function JobsPage() {
     setTriggering(true);
     setTriggerError(null);
     try {
-      await triggerJob();
+      // Parse award codes from input (comma-separated)
+      let awardCodes: string[] | undefined = undefined;
+      if (!triggerAllAwards && awardCodesInput.trim()) {
+        awardCodes = awardCodesInput
+          .split(',')
+          .map(code => code.trim().toUpperCase())
+          .filter(code => code.length > 0);
+        
+        if (awardCodes.length === 0) {
+          setTriggerError('Please enter at least one award code or select "All Awards"');
+          return;
+        }
+      }
+
+      await triggerJob(awardCodes);
       setTriggerDialogOpen(false);
+      setAwardCodesInput('');
+      setTriggerAllAwards(true);
       refreshJobs();
     } catch (err: any) {
       setTriggerError(err.message || 'Failed to trigger job');
@@ -209,13 +231,47 @@ export default function JobsPage() {
       </Paper>
 
       {/* Trigger Confirmation Dialog */}
-      <Dialog open={triggerDialogOpen} onClose={() => setTriggerDialogOpen(false)}>
+      <Dialog open={triggerDialogOpen} onClose={() => setTriggerDialogOpen(false)} maxWidth="sm" fullWidth>
         <DialogTitle>Trigger ETL Pipeline</DialogTitle>
         <DialogContent>
-          <DialogContentText>
-            Are you sure you want to manually trigger the ETL pipeline? This will extract
-            data from the FWC API and load it into the database.
+          <DialogContentText sx={{ mb: 3 }}>
+            Configure the ETL job to extract and load data from the FWC API.
           </DialogContentText>
+
+          <FormControlLabel
+            control={
+              <Checkbox
+                checked={triggerAllAwards}
+                onChange={(e) => {
+                  setTriggerAllAwards(e.target.checked);
+                  if (e.target.checked) setAwardCodesInput('');
+                }}
+              />
+            }
+            label="Load all active awards"
+            sx={{ mb: 2 }}
+          />
+
+          {!triggerAllAwards && (
+            <Box>
+              <TextField
+                fullWidth
+                label="Award Codes"
+                placeholder="e.g., MA000120, MA000004, MA000029"
+                value={awardCodesInput}
+                onChange={(e) => setAwardCodesInput(e.target.value)}
+                helperText="Enter one or more award codes separated by commas"
+                variant="outlined"
+                multiline
+                rows={3}
+                sx={{ mb: 1 }}
+              />
+              <FormHelperText>
+                Example: MA000120 for a single award, or MA000120, MA000004, MA000029 for multiple awards
+              </FormHelperText>
+            </Box>
+          )}
+
           {triggerError && (
             <Alert severity="error" sx={{ mt: 2 }}>
               {triggerError}
@@ -232,7 +288,7 @@ export default function JobsPage() {
             disabled={triggering}
             startIcon={triggering ? <CircularProgress size={20} /> : <PlayArrow />}
           >
-            {triggering ? 'Triggering...' : 'Trigger'}
+            {triggering ? 'Triggering...' : 'Trigger Job'}
           </Button>
         </DialogActions>
       </Dialog>

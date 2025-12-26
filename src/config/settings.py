@@ -175,8 +175,21 @@ class Settings(BaseSettings):
         if had_tcp:
             server_value = f"tcp:{server_value}"
 
+        # On macOS, use absolute driver path to avoid ODBC registry lookup issues
+        import os
+        import platform
+        driver_token = f"DRIVER={{{driver}}}"
+        if platform.system() == "Darwin":
+            path_candidates = [
+                "/opt/homebrew/lib/libmsodbcsql.17.dylib",
+                "/usr/local/lib/libmsodbcsql.17.dylib",
+            ]
+            driver_path = next((p for p in path_candidates if os.path.exists(p)), None)
+            if driver_path:
+                driver_token = f"Driver={driver_path}"
+
         odbc_conn = (
-            f"DRIVER={{{driver}}};SERVER={server_value};"
+            f"{driver_token};SERVER={server_value};"
             f"DATABASE={self.mssql_database};UID={self.mssql_user};PWD={self.mssql_password};"
             "TrustServerCertificate=Yes"
         )

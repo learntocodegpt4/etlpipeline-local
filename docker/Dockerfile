@@ -13,11 +13,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     unixodbc-dev \
     apt-transport-https \
     ca-certificates \
+    dos2unix \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Microsoft ODBC Driver 17 for SQL Server (modern method)
 RUN curl -fsSL https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > /usr/share/keyrings/microsoft-prod.gpg \
     && echo "deb [arch=amd64,arm64,armhf signed-by=/usr/share/keyrings/microsoft-prod.gpg] https://packages.microsoft.com/debian/11/prod bullseye main" > /etc/apt/sources.list.d/mssql-release.list \
+    file \
     && apt-get update \
     && ACCEPT_EULA=Y apt-get install -y msodbcsql17 \
     && rm -rf /var/lib/apt/lists/*
@@ -34,7 +36,15 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy application code
 COPY src/ ./src/
 COPY migrations/ ./migrations/
-COPY run.py .
+# Runtime entrypoint to normalize encodings and strip null bytes
+COPY docker/entrypoint.sh /app/entrypoint.sh
+RUN chmod +x /app/entrypoint.sh
+
+# Expose API port
+EXPOSE 8000
+
+# Default entrypoint - sanitize source then run API
+ENTRYPOINT ["/app/entrypoint.sh"]
 COPY pyproject.toml .
 
 # Copy .env if it exists
@@ -42,6 +52,10 @@ COPY .env* ./
 
 # Create directories for data and logs
 RUN mkdir -p /app/data /app/logs
+
+# Remove null bytes and fix line endings in all Python files
+RUN find /app/src -name "*.py" -type f -exec sed -i 's/\x0//g' {} + && \
+    find /app/src -name "*.py" -type f -exec dos2unix {} + 2>/dev/null || true
 
 # Expose API port
 EXPOSE 8000

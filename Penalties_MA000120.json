@@ -1,0 +1,44 @@
+postman request 'https://api.fwc.gov.au/api/v1/awards/MA000001/penalties?page=1&limit=100' \
+  --header 'Ocp-Apim-Subscription-Key: 4669506fdbea4e7783d3dbb7b899b935' \
+  --header 'Accept: application/json' \
+  --header 'Cache-Control: no-cache' \
+  --header 'Cookie: ARRAffinity=7ba771e6cec0470ab30899e2424b353942f35c9b0406ee2b597625b796a76e3a'
+
+{
+    "_meta": {
+        "current_page": 1,
+        "page_count": 77,
+        "limit": 100,
+        "result_count": 7700,
+        "first_row_on_page": 1,
+        "last_row_on_page": 100,
+        "has_more_results": true,
+        "has_previous_results": false
+    },
+    "results": [
+        {
+            "penalty_fixed_id": 1805,
+            "clause_fixed_id": 21665,
+            "clause_description": "Full-time and part-time production and engineering employees—6 day roster and 7 day roster employees—overtime—Monday to Friday\n",
+            "classification_level": 1,
+            "penalty_description": "Afternoon and rotating night shift ",
+            "rate": 215.0,
+            "employee_rate_type_code": "AD",
+            "penalty_calculated_value": 63.92,
+            "calculated_includes_all_purpose": false,
+            "base_pay_rate_id": "BR89757",
+            "operative_from": "2025-07-01",
+            "operative_to": null,
+            "version_number": 8,
+            "published_year": 2025,
+            "last_modified_datetime": "2025-06-03T01:31:32+00:00"
+        }
+    ],
+    "_links": [
+        {
+            "href": "https://api.fwc.gov.au/api/v1/awards/MA000001/penalties?penalty_fixed_id=&classification_level=&page=1&limit=100",
+            "rel": "first",
+            "method": "GET"
+        }
+    ]
+}
