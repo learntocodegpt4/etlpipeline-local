@@ -27,6 +27,7 @@ import {
   Article as LogsIcon,
   Settings as SettingsIcon,
   MonetizationOn as PenaltiesIcon,
+  Gavel as RuleEngineIcon,
 } from '@mui/icons-material';
 import { useStatus } from '@/lib/api';
 
@@ -36,6 +37,7 @@ const menuItems = [
   { label: 'Dashboard', icon: <DashboardIcon />, path: '/' },
   { label: 'Jobs', icon: <JobsIcon />, path: '/jobs' },
   { label: 'Data', icon: <DataIcon />, path: '/data' },
+  { label: 'Rule Engine', icon: <RuleEngineIcon />, path: '/ruleengine' },
   { label: 'Penalties', icon: <PenaltiesIcon />, path: '/penalties' },
   { label: 'Live Logs', icon: <LogsIcon />, path: '/logs' },
 ];

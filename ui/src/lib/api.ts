@@ -226,3 +226,235 @@ export function usePenaltyStatistics(awardCode: string) {
 }
 
 export { globalMutate as mutate };
+
+// Rule Engine API hooks
+const RULE_ENGINE_API_URL = process.env.NEXT_PUBLIC_RULE_ENGINE_API_URL || 'http://localhost:8082/api';
+
+// Awards hooks
+export function useRuleEngineAwards(page: number = 1, pageSize: number = 50) {
+  const params = new URLSearchParams({
+    page: page.toString(),
+    pageSize: pageSize.toString(),
+  });
+
+  const { data, error, isLoading, mutate } = useSWR(
+    `${RULE_ENGINE_API_URL}/Awards?${params}`,
+    fetcher
+  );
+
+  return {
+    awards: data || [],
+    totalCount: data?.length || 0,
+    isLoading,
+    error,
+    mutate,
+  };
+}
+
+// Awards Detailed hooks
+export function useAwardsDetailed(awardCode?: string, recordType?: string, page: number = 1, pageSize: number = 50) {
+  const params = new URLSearchParams({
+    page: page.toString(),
+    pageSize: pageSize.toString(),
+  });
+  if (awardCode) params.set('awardCode', awardCode);
+  if (recordType) params.set('recordType', recordType);
+
+  const { data, error, isLoading, mutate } = useSWR(
+    `${RULE_ENGINE_API_URL}/AwardsDetailed?${params}`,
+    fetcher
+  );
+
+  return {
+    awardsDetailed: data || [],
+    totalCount: data?.length || 0,
+    isLoading,
+    error,
+    mutate,
+  };
+}
+
+// Calculated Pay Rates hooks
+export function useCalculatedPayRates(
+  awardCode?: string,
+  employmentType?: string,
+  dayType?: string,
+  page: number = 1,
+  pageSize: number = 100
+) {
+  const params = new URLSearchParams({
+    page: page.toString(),
+    pageSize: pageSize.toString(),
+  });
+  if (awardCode) params.set('awardCode', awardCode);
+  if (employmentType) params.set('employmentType', employmentType);
+  if (dayType) params.set('dayType', dayType);
+
+  const { data, error, isLoading, mutate } = useSWR(
+    `${RULE_ENGINE_API_URL}/CalculatedPayRates?${params}`,
+    fetcher
+  );
+
+  return {
+    payRates: data || [],
+    totalCount: data?.length || 0,
+    isLoading,
+    error,
+    mutate,
+  };
+}
+
+export function usePayRateStatistics(awardCode?: string) {
+  const params = new URLSearchParams();
+  if (awardCode) params.set('awardCode', awardCode);
+
+  const { data, error, isLoading } = useSWR(
+    `${RULE_ENGINE_API_URL}/CalculatedPayRates/statistics?${params}`,
+    fetcher
+  );
+
+  return {
+    statistics: data,
+    isLoading,
+    error,
+  };
+}
+
+// Rule Engine Penalties hooks
+export function useRuleEnginePenalties(
+  awardCode?: string,
+  classificationLevel?: number,
+  page: number = 1,
+  pageSize: number = 100
+) {
+  const params = new URLSearchParams({
+    page: page.toString(),
+    pageSize: pageSize.toString(),
+  });
+  if (awardCode) params.set('awardCode', awardCode);
+  if (classificationLevel) params.set('classificationLevel', classificationLevel.toString());
+
+  const { data, error, isLoading, mutate } = useSWR(
+    `${RULE_ENGINE_API_URL}/Penalties?${params}`,
+    fetcher
+  );
+
+  return {
+    penalties: data || [],
+    totalCount: data?.length || 0,
+    isLoading,
+    error,
+    mutate,
+  };
+}
+
+export function useRuleEnginePenaltyStatistics(awardCode?: string) {
+  const params = new URLSearchParams();
+  if (awardCode) params.set('awardCode', awardCode);
+
+  const { data, error, isLoading } = useSWR(
+    awardCode ? `${RULE_ENGINE_API_URL}/Penalties/statistics?${params}` : null,
+    fetcher
+  );
+
+  return {
+    statistics: data,
+    isLoading,
+    error,
+  };
+}
+
+// Rules hooks
+export function useRules(awardCode?: string, type?: string, page: number = 1, pageSize: number = 50) {
+  const params = new URLSearchParams({
+    page: page.toString(),
+    pageSize: pageSize.toString(),
+  });
+  if (awardCode) params.set('awardCode', awardCode);
+  if (type) params.set('type', type);
+
+  const { data, error, isLoading, mutate } = useSWR(
+    `${RULE_ENGINE_API_URL}/Rules?${params}`,
+    fetcher
+  );
+
+  return {
+    rules: data || [],
+    totalCount: data?.length || 0,
+    isLoading,
+    error,
+    mutate,
+  };
+}
+
+// Rule Engine API functions
+export async function compileAwards(awardCode?: string) {
+  const res = await fetch(`${RULE_ENGINE_API_URL}/RuleEngine/compile-awards`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ awardCode }),
+  });
+
+  if (!res.ok) {
+    const error = await res.json();
+    throw new Error(error.message || 'Failed to compile awards');
+  }
+
+  return res.json();
+}
+
+export async function compileAwardsDetailed(awardCode?: string) {
+  const res = await fetch(`${RULE_ENGINE_API_URL}/RuleEngine/compile-awards-detailed`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ awardCode }),
+  });
+
+  if (!res.ok) {
+    const error = await res.json();
+    throw new Error(error.message || 'Failed to compile awards detailed');
+  }
+
+  return res.json();
+}
+
+export async function calculatePayRates(awardCode?: string, classificationLevel?: number) {
+  const res = await fetch(`${RULE_ENGINE_API_URL}/CalculatedPayRates/calculate`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ awardCode, classificationLevel }),
+  });
+
+  if (!res.ok) {
+    const error = await res.json();
+    throw new Error(error.message || 'Failed to calculate pay rates');
+  }
+
+  return res.json();
+}
+
+export async function applyRule(awardCode: string, ruleId: string) {
+  const res = await fetch(`${RULE_ENGINE_API_URL}/RuleEngine/apply-rule`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ awardCode, ruleId }),
+  });
+
+  if (!res.ok) {
+    const error = await res.json();
+    throw new Error(error.message || 'Failed to apply rule');
+  }
+
+  return res.json();
+}
+
+export async function getAwardRulesJson(awardCode: string) {
+  const res = await fetch(`${RULE_ENGINE_API_URL}/RuleEngine/award-rules-json?awardCode=${awardCode}`);
+  
+  if (!res.ok) {
+    const error = await res.json();
+    throw new Error(error.message || 'Failed to get award rules JSON');
+  }
+
+  return res.json();
+}
