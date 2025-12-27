@@ -374,14 +374,11 @@ public class RuleEngineRepository : IRuleEngineRepository
                 operative_to AS OperativeTo,
                 version_number AS VersionNumber,
                 published_year AS PublishedYear,
-                penalty_type AS PenaltyType,
-                applicable_day AS ApplicableDay,
                 created_at AS CreatedAt,
                 updated_at AS UpdatedAt
             FROM Stg_TblPenalties
             WHERE (@award_code IS NULL OR award_code = @award_code)
                 AND (@classification_level IS NULL OR classification_level = @classification_level)
-                AND (@penalty_type IS NULL OR penalty_type = @penalty_type)
             ORDER BY 
                 award_code,
                 classification_level,
@@ -393,14 +390,12 @@ public class RuleEngineRepository : IRuleEngineRepository
             SELECT COUNT(*)
             FROM Stg_TblPenalties
             WHERE (@award_code IS NULL OR award_code = @award_code)
-                AND (@classification_level IS NULL OR classification_level = @classification_level)
-                AND (@penalty_type IS NULL OR penalty_type = @penalty_type)";
+                AND (@classification_level IS NULL OR classification_level = @classification_level)";
         
         var parameters = new
         {
             award_code = awardCode,
             classification_level = classificationLevel,
-            penalty_type = penaltyType,
             offset = (pageNumber - 1) * pageSize,
             pageSize
         };
@@ -410,4 +405,37 @@ public class RuleEngineRepository : IRuleEngineRepository
 
         return (penalties.ToList(), totalCount);
     }
+
+    public async Task<Rule> CreateRuleAsync(Rule rule)
+    {
+        using var connection = _context.CreateConnection();
+
+        var sql = @"
+            INSERT INTO TblRules 
+            (rule_code, rule_name, rule_type, rule_category, priority, is_active, created_by, rule_expression, rule_definition, created_at, updated_at)
+            VALUES 
+            (@rule_code, @rule_name, @rule_type, @rule_category, @priority, @is_active, @created_by, @rule_expression, @rule_definition, @created_at, @updated_at);
+            
+            SELECT CAST(SCOPE_IDENTITY() as int);";
+
+        var parameters = new
+        {
+            rule_code = rule.RuleCode,
+            rule_name = rule.RuleName,
+            rule_type = rule.RuleType,
+            rule_category = rule.RuleCategory,
+            priority = rule.Priority,
+            is_active = rule.IsActive,
+            created_by = rule.CreatedBy,
+            rule_expression = rule.RuleExpression,
+            rule_definition = rule.RuleDefinition,
+            created_at = rule.CreatedAt,
+            updated_at = rule.UpdatedAt
+        };
+
+        var id = await connection.QuerySingleAsync<int>(sql, parameters);
+        rule.Id = id;
+        return rule;
+    }
 }
+

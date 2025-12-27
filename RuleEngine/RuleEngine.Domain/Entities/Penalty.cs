@@ -16,8 +16,6 @@ public class Penalty
     public DateTime? OperativeTo { get; set; }
     public int? VersionNumber { get; set; }
     public int? PublishedYear { get; set; }
-    public string? PenaltyType { get; set; }
-    public string? ApplicableDay { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
 }

@@ -93,6 +93,20 @@ class StateManager:
                     await db.execute("ALTER TABLE jobs ADD COLUMN progress INTEGER DEFAULT 0")
                     logger.info("sqlite_migration_applied", table="jobs", column="progress")
 
+                # Add 'total_records' column if missing
+                if "total_records" not in cols:
+                    await db.execute("ALTER TABLE jobs ADD COLUMN total_records INTEGER DEFAULT 0")
+                    logger.info("sqlite_migration_applied", table="jobs", column="total_records")
+
+                # Add other missing columns from schema
+                if "processed_records" not in cols:
+                    await db.execute("ALTER TABLE jobs ADD COLUMN processed_records INTEGER DEFAULT 0")
+                    logger.info("sqlite_migration_applied", table="jobs", column="processed_records")
+
+                if "failed_records" not in cols:
+                    await db.execute("ALTER TABLE jobs ADD COLUMN failed_records INTEGER DEFAULT 0")
+                    logger.info("sqlite_migration_applied", table="jobs", column="failed_records")
+
                 await db.commit()
             except Exception as e:
                 # Log and proceed; initialization shouldn't fatally fail due to migrations

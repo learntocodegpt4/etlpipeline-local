@@ -14,6 +14,7 @@ public interface IRuleEngineRepository
     Task<IEnumerable<Award>> GetAwardsAsync(string? awardCode, string? industryType, bool? isActive);
     Task<IEnumerable<AwardDetailed>> GetAwardsDetailedAsync(string? awardCode, string? recordType, int? classificationFixedId);
     Task<IEnumerable<Rule>> GetRulesAsync(string? ruleType, string? ruleCategory, bool? isActive);
+    Task<Rule> CreateRuleAsync(Rule rule);
     Task<string> GenerateAwardRulesJsonAsync(string? awardCode, string? ruleType);
     Task<bool> InitializeBasicRulesAsync();
     

@@ -60,12 +60,14 @@ services:
         - NEXT_PUBLIC_ASSET_PREFIX=/etlui
         - NEXT_PUBLIC_API_URL=/etlapi/api
         - NEXT_PUBLIC_WS_URL=/etlapi/ws
+        - NEXT_PUBLIC_RULE_ENGINE_API_URL=/ruleapi/api
     container_name: etl-ui
     ports:
       - "3001:3001"
     environment:
       - NEXT_PUBLIC_API_URL=/etlapi/api
       - NEXT_PUBLIC_WS_URL=/etlapi/ws
+      - NEXT_PUBLIC_RULE_ENGINE_API_URL=/ruleapi/api
     networks:
       - etl-network
     restart: unless-stopped
@@ -78,9 +80,9 @@ services:
     container_name: etl-ruleengine
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
-      - ASPNETCORE_URLS=http://0.0.0.0:5016
+      - ASPNETCORE_URLS=http://0.0.0.0:8082
     ports:
-      - "8082:5016"  # host:container
+      - "8082:8082"  # host:container
     networks:
       - etl-network
     depends_on:

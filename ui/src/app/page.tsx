@@ -30,15 +30,35 @@ import {
   Cell,
 } from 'recharts';
 import { useJobStats, useJobs } from '@/lib/api';
+import { useSnackbar } from '@/context/SnackbarContext';
+import { useLoader } from '@/context/LoaderContext';
 
 const COLORS = ['#4caf50', '#f44336', '#ff9800', '#2196f3'];
 
 export default function DashboardPage() {
   const { stats, isLoading: statsLoading, error: statsError } = useJobStats();
   const { jobs, isLoading: jobsLoading, error: jobsError } = useJobs(1, 5);
+  const { showSnackbar } = useSnackbar();
+  const { setIsLoading } = useLoader();
 
   const isLoading = statsLoading || jobsLoading;
   const error = statsError || jobsError;
+
+  useEffect(() => {
+    setIsLoading(isLoading);
+  }, [isLoading, setIsLoading]);
+
+  useEffect(() => {
+    if (error) {
+      showSnackbar(`Failed to load dashboard: ${error.message}`, 'error');
+    }
+  }, [error, showSnackbar]);
+
+  useEffect(() => {
+    if (stats && !statsLoading && !statsError) {
+      showSnackbar('Dashboard data loaded successfully', 'success', 3000);
+    }
+  }, [stats, statsLoading, statsError, showSnackbar]);
 
   if (isLoading) {
     return (

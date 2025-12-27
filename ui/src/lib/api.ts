@@ -228,7 +228,7 @@ export function usePenaltyStatistics(awardCode: string) {
 export { globalMutate as mutate };
 
 // Rule Engine API hooks
-const RULE_ENGINE_API_URL = process.env.NEXT_PUBLIC_RULE_ENGINE_API_URL || 'http://localhost:8082/api';
+const RULE_ENGINE_API_URL = process.env.NEXT_PUBLIC_RULE_ENGINE_API_URL || '/ruleapi/api';
 
 // Awards hooks
 export function useRuleEngineAwards(page: number = 1, pageSize: number = 50) {
@@ -243,8 +243,8 @@ export function useRuleEngineAwards(page: number = 1, pageSize: number = 50) {
   );
 
   return {
-    awards: data || [],
-    totalCount: data?.length || 0,
+    awards: Array.isArray(data) ? data : [],
+    totalCount: Array.isArray(data) ? data.length : 0,
     isLoading,
     error,
     mutate,
@@ -266,8 +266,8 @@ export function useAwardsDetailed(awardCode?: string, recordType?: string, page:
   );
 
   return {
-    awardsDetailed: data || [],
-    totalCount: data?.length || 0,
+    awardsDetailed: Array.isArray(data) ? data : [],
+    totalCount: Array.isArray(data) ? data.length : 0,
     isLoading,
     error,
     mutate,
@@ -277,8 +277,11 @@ export function useAwardsDetailed(awardCode?: string, recordType?: string, page:
 // Calculated Pay Rates hooks
 export function useCalculatedPayRates(
   awardCode?: string,
+  classificationFixedId?: number,
   employmentType?: string,
   dayType?: string,
+  shiftType?: string,
+  employeeAgeCategory?: string,
   page: number = 1,
   pageSize: number = 100
 ) {
@@ -287,8 +290,11 @@ export function useCalculatedPayRates(
     pageSize: pageSize.toString(),
   });
   if (awardCode) params.set('awardCode', awardCode);
+  if (classificationFixedId !== undefined && classificationFixedId !== null) params.set('classificationFixedId', classificationFixedId.toString());
   if (employmentType) params.set('employmentType', employmentType);
   if (dayType) params.set('dayType', dayType);
+  if (shiftType) params.set('shiftType', shiftType);
+  if (employeeAgeCategory) params.set('employeeAgeCategory', employeeAgeCategory);
 
   const { data, error, isLoading, mutate } = useSWR(
     `${RULE_ENGINE_API_URL}/CalculatedPayRates?${params}`,
@@ -296,8 +302,8 @@ export function useCalculatedPayRates(
   );
 
   return {
-    payRates: data || [],
-    totalCount: data?.length || 0,
+    payRates: Array.isArray(data) ? data : [],
+    totalCount: Array.isArray(data) ? data.length : 0,
     isLoading,
     error,
     mutate,
@@ -308,7 +314,7 @@ export function usePayRateStatistics(awardCode?: string) {
   const params = new URLSearchParams();
   if (awardCode) params.set('awardCode', awardCode);
 
-  const { data, error, isLoading } = useSWR(
+  const { data, error, isLoading, mutate } = useSWR(
     `${RULE_ENGINE_API_URL}/CalculatedPayRates/statistics?${params}`,
     fetcher
   );
@@ -317,6 +323,7 @@ export function usePayRateStatistics(awardCode?: string) {
     statistics: data,
     isLoading,
     error,
+    mutate,
   };
 }
 
@@ -325,7 +332,8 @@ export function useRuleEnginePenalties(
   awardCode?: string,
   classificationLevel?: number,
   page: number = 1,
-  pageSize: number = 100
+  pageSize: number = 100,
+  penaltyType?: string
 ) {
   const params = new URLSearchParams({
     page: page.toString(),
@@ -333,6 +341,7 @@ export function useRuleEnginePenalties(
   });
   if (awardCode) params.set('awardCode', awardCode);
   if (classificationLevel) params.set('classificationLevel', classificationLevel.toString());
+  if (penaltyType) params.set('penaltyType', penaltyType);
 
   const { data, error, isLoading, mutate } = useSWR(
     `${RULE_ENGINE_API_URL}/Penalties?${params}`,
@@ -340,8 +349,11 @@ export function useRuleEnginePenalties(
   );
 
   return {
-    penalties: data || [],
-    totalCount: data?.length || 0,
+    penalties: data?.penalties || [],
+    totalCount: data?.totalCount || 0,
+    page: data?.page || page,
+    pageSize: data?.pageSize || pageSize,
+    totalPages: data?.totalPages || Math.ceil((data?.totalCount || 0) / (data?.pageSize || pageSize)),
     isLoading,
     error,
     mutate,
@@ -365,13 +377,14 @@ export function useRuleEnginePenaltyStatistics(awardCode?: string) {
 }
 
 // Rules hooks
-export function useRules(awardCode?: string, type?: string, page: number = 1, pageSize: number = 50) {
+export function useRules(ruleType?: string, ruleCategory?: string, isActive?: boolean, page: number = 1, pageSize: number = 50) {
   const params = new URLSearchParams({
     page: page.toString(),
     pageSize: pageSize.toString(),
   });
-  if (awardCode) params.set('awardCode', awardCode);
-  if (type) params.set('type', type);
+  if (ruleType) params.set('ruleType', ruleType);
+  if (ruleCategory) params.set('ruleCategory', ruleCategory);
+  if (typeof isActive === 'boolean') params.set('isActive', isActive ? 'true' : 'false');
 
   const { data, error, isLoading, mutate } = useSWR(
     `${RULE_ENGINE_API_URL}/Rules?${params}`,
@@ -379,8 +392,8 @@ export function useRules(awardCode?: string, type?: string, page: number = 1, pa
   );
 
   return {
-    rules: data || [],
-    totalCount: data?.length || 0,
+    rules: Array.isArray(data) ? data : [],
+    totalCount: Array.isArray(data) ? data.length : 0,
     isLoading,
     error,
     mutate,
@@ -418,11 +431,11 @@ export async function compileAwardsDetailed(awardCode?: string) {
   return res.json();
 }
 
-export async function calculatePayRates(awardCode?: string, classificationLevel?: number) {
+export async function calculatePayRates(awardCode?: string, classificationFixedId?: number) {
   const res = await fetch(`${RULE_ENGINE_API_URL}/CalculatedPayRates/calculate`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ awardCode, classificationLevel }),
+    body: JSON.stringify({ awardCode, classificationFixedId }),
   });
 
   if (!res.ok) {
@@ -457,4 +470,38 @@ export async function getAwardRulesJson(awardCode: string) {
   }
 
   return res.json();
+}
+
+// Create custom rule
+export async function createRule(ruleData: {
+  ruleCode: string;
+  ruleName: string;
+  ruleType: string;
+  ruleCategory: string;
+  priority: number;
+  isActive: boolean;
+  createdBy: string;
+  ruleExpression: string;
+  ruleDefinition: string;
+  applicableFrom?: string;
+  applicableTo?: string;
+}) {
+  const res = await fetch(`${RULE_ENGINE_API_URL}/Rules/create`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(ruleData),
+  });
+
+  const data = await res.json();
+
+  if (!res.ok) {
+    // Extract detailed error message
+    let errorMessage = data.message || 'Failed to create rule';
+    if (data.errors && Array.isArray(data.errors)) {
+      errorMessage = data.errors.join(', ');
+    }
+    throw new Error(errorMessage);
+  }
+
+  return data;
 }

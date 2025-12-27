@@ -13,6 +13,7 @@ import AwardsTab from '@/components/ruleengine/AwardsTab';
 import AwardsDetailedTab from '@/components/ruleengine/AwardsDetailedTab';
 import CalculatedPayRatesTab from '@/components/ruleengine/CalculatedPayRatesTab';
 import PenaltiesTab from '@/components/ruleengine/PenaltiesTab';
+import PenaltiesStatisticsTab from '@/components/ruleengine/PenaltiesStatisticsTab';
 import CompilationTab from '@/components/ruleengine/CompilationTab';
 import RulesTab from '@/components/ruleengine/RulesTab';
 
@@ -69,8 +70,9 @@ export default function RuleEnginePage() {
             <Tab label="Awards Detailed" id="ruleengine-tab-1" />
             <Tab label="Calculated Pay Rates" id="ruleengine-tab-2" />
             <Tab label="Penalties" id="ruleengine-tab-3" />
-            <Tab label="Rules" id="ruleengine-tab-4" />
-            <Tab label="Compilation" id="ruleengine-tab-5" />
+            <Tab label="Penalties Stats" id="ruleengine-tab-4" />
+            <Tab label="Rules" id="ruleengine-tab-5" />
+            <Tab label="Compilation" id="ruleengine-tab-6" />
           </Tabs>
         </Box>
 
@@ -87,9 +89,12 @@ export default function RuleEnginePage() {
           <PenaltiesTab />
         </TabPanel>
         <TabPanel value={activeTab} index={4}>
-          <RulesTab />
+          <PenaltiesStatisticsTab />
         </TabPanel>
         <TabPanel value={activeTab} index={5}>
+          <RulesTab />
+        </TabPanel>
+        <TabPanel value={activeTab} index={6}>
           <CompilationTab />
         </TabPanel>
       </Paper>

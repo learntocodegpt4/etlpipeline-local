@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { 
   Box, 
   TextField, 
@@ -14,36 +14,47 @@ import {
 import { DataGrid, GridColDef } from '@mui/x-data-grid';
 import { Download, Refresh } from '@mui/icons-material';
 import { useRuleEngineAwards } from '@/lib/api';
+import { useSnackbar } from '@/context/SnackbarContext';
+import { useLoader } from '@/context/LoaderContext';
 
 export default function AwardsTab() {
   const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState(50);
   const [searchCode, setSearchCode] = useState('');
+  const { showSnackbar } = useSnackbar();
+  const { setIsLoading } = useLoader();
   
   const { awards, isLoading, error, mutate } = useRuleEngineAwards(page + 1, pageSize);
 
+  useEffect(() => {
+    setIsLoading(isLoading);
+  }, [isLoading, setIsLoading]);
+
+  useEffect(() => {
+    if (error) {
+      showSnackbar(`Failed to load awards: ${error.message}`, 'error');
+    }
+  }, [error, showSnackbar]);
+
+  useEffect(() => {
+    if (awards && awards.length > 0 && !isLoading && !error) {
+      showSnackbar(`Loaded ${awards.length} awards`, 'success', 2000);
+    }
+  }, [awards, isLoading, error, showSnackbar]);
+
   const filteredAwards = awards?.filter((award: any) => 
-    !searchCode || award.code?.toLowerCase().includes(searchCode.toLowerCase()) ||
-    award.name?.toLowerCase().includes(searchCode.toLowerCase())
+    !searchCode || award.awardCode?.toLowerCase().includes(searchCode.toLowerCase()) ||
+    award.awardName?.toLowerCase().includes(searchCode.toLowerCase())
   ) || [];
 
   const columns: GridColDef[] = [
-    { field: 'code', headerName: 'Award Code', width: 150, sortable: true },
-    { field: 'name', headerName: 'Award Name', width: 400, sortable: true },
-    { field: 'industry', headerName: 'Industry', width: 200, sortable: true },
-    { field: 'version_number', headerName: 'Version', width: 100, sortable: true },
-    { 
-      field: 'award_operative_from', 
-      headerName: 'Operative From', 
-      width: 150,
-      valueFormatter: (params) => params.value ? new Date(params.value).toLocaleDateString() : 'N/A'
-    },
-    { 
-      field: 'award_operative_to', 
-      headerName: 'Operative To', 
-      width: 150,
-      valueFormatter: (params) => params.value ? new Date(params.value).toLocaleDateString() : 'Current'
-    },
+    { field: 'awardCode', headerName: 'Award Code', width: 150, sortable: true },
+    { field: 'awardName', headerName: 'Award Name', width: 400, sortable: true },
+    { field: 'industryType', headerName: 'Industry', width: 200, sortable: true },
+    { field: 'totalClassifications', headerName: 'Classifications', width: 120, sortable: true },
+    { field: 'totalPayRates', headerName: 'Pay Rates', width: 120, sortable: true },
+    { field: 'totalExpenseAllowances', headerName: 'Expense Allow.', width: 120, sortable: true },
+    { field: 'totalWageAllowances', headerName: 'Wage Allow.', width: 120, sortable: true },
   ];
 
   const handleExport = () => {
@@ -114,7 +125,7 @@ export default function AwardsTab() {
       ) : (
         <Box sx={{ height: 600, width: '100%' }}>
           <DataGrid
-            rows={filteredAwards.map((row: any, index: number) => ({ ...row, id: row.award_id || index }))}
+            rows={filteredAwards.map((row: any) => ({ ...row, id: row.id }))}
             columns={columns}
             pageSizeOptions={[25, 50, 100]}
             paginationModel={{ page, pageSize }}

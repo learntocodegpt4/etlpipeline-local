@@ -4,6 +4,8 @@ import CssBaseline from '@mui/material/CssBaseline';
 import { AppRouterCacheProvider } from '@mui/material-nextjs/v14-appRouter';
 import theme from '@/lib/theme';
 import Layout from '@/components/Layout';
+import { SnackbarProvider } from '@/context/SnackbarContext';
+import { LoaderProvider } from '@/context/LoaderContext';
 
 export const metadata: Metadata = {
   title: 'FWC ETL Pipeline',
@@ -21,7 +23,11 @@ export default function RootLayout({
         <AppRouterCacheProvider>
           <ThemeProvider theme={theme}>
             <CssBaseline />
-            <Layout>{children}</Layout>
+            <LoaderProvider>
+              <SnackbarProvider>
+                <Layout>{children}</Layout>
+              </SnackbarProvider>
+            </LoaderProvider>
           </ThemeProvider>
         </AppRouterCacheProvider>
       </body>
