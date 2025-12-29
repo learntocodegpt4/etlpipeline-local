@@ -247,3 +247,5 @@ docker-compose.override.yml
 *.key
 secrets.json
 **.DS_Store
+
+.fake
