@@ -24,7 +24,7 @@ class BulkLoader(Loader):
         table_name: str,
         key_columns: List[str],
         connector: Optional[SQLConnector] = None,
-        batch_size: int = 1000,
+        batch_size: int = 200,
         upsert: bool = True,
     ):
         self._source_key = source_key
@@ -114,19 +114,35 @@ class BulkLoader(Loader):
 
         sql = f"INSERT INTO {self.table_name} ({columns_str}) VALUES ({placeholders})"
 
-        session = connector.get_session()
-        try:
-            for record in batch:
-                # Serialize any complex types
-                clean_record = self._clean_record(record)
-                session.execute(text(sql), clean_record)
-            session.commit()
-            return len(batch)
-        except Exception:
-            session.rollback()
-            raise
-        finally:
-            session.close()
+        # Simple retry loop to mitigate transient connection errors
+        attempts = 0
+        last_exc: Optional[Exception] = None
+        while attempts < 3:
+            session = connector.get_session()
+            try:
+                for record in batch:
+                    clean_record = self._clean_record(record)
+                    session.execute(text(sql), clean_record)
+                session.commit()
+                return len(batch)
+            except Exception as e:
+                session.rollback()
+                last_exc = e
+                attempts += 1
+                logger.warning(
+                    "insert_retry", table=self.table_name, attempt=attempts, error=str(e)
+                )
+                # backoff
+                try:
+                    import time
+                    time.sleep(min(5, 0.5 * (2 ** (attempts - 1))))
+                except Exception:
+                    pass
+            finally:
+                session.close()
+        if last_exc:
+            raise last_exc
+        return 0
 
     def _upsert_batch(
         self, connector: SQLConnector, batch: List[Dict[str, Any]]
@@ -161,18 +177,34 @@ class BulkLoader(Loader):
             VALUES ({insert_vals});
         """
 
-        session = connector.get_session()
-        try:
-            for record in batch:
-                clean_record = self._clean_record(record)
-                session.execute(text(sql), clean_record)
-            session.commit()
-            return len(batch)
-        except Exception:
-            session.rollback()
-            raise
-        finally:
-            session.close()
+        # Retry on transient failures (e.g., TCP provider / handshake issues)
+        attempts = 0
+        last_exc: Optional[Exception] = None
+        while attempts < 3:
+            session = connector.get_session()
+            try:
+                for record in batch:
+                    clean_record = self._clean_record(record)
+                    session.execute(text(sql), clean_record)
+                session.commit()
+                return len(batch)
+            except Exception as e:
+                session.rollback()
+                last_exc = e
+                attempts += 1
+                logger.warning(
+                    "upsert_retry", table=self.table_name, attempt=attempts, error=str(e)
+                )
+                try:
+                    import time
+                    time.sleep(min(5, 0.5 * (2 ** (attempts - 1))))
+                except Exception:
+                    pass
+            finally:
+                session.close()
+        if last_exc:
+            raise last_exc
+        return 0
 
     def _clean_record(self, record: Dict[str, Any]) -> Dict[str, Any]:
         """Clean record for database insertion"""

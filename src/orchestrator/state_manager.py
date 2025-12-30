@@ -82,6 +82,36 @@ class StateManager:
             await db.commit()
             logger.info("database_initialized", db_path=self.db_path)
 
+            # Backward-compatible migration: ensure required columns exist on existing DBs
+            try:
+                # Fetch existing columns for 'jobs'
+                cur = await db.execute("PRAGMA table_info(jobs)")
+                cols = [row[1] for row in await cur.fetchall()]
+
+                # Add 'progress' column if missing (older DBs)
+                if "progress" not in cols:
+                    await db.execute("ALTER TABLE jobs ADD COLUMN progress INTEGER DEFAULT 0")
+                    logger.info("sqlite_migration_applied", table="jobs", column="progress")
+
+                # Add 'total_records' column if missing
+                if "total_records" not in cols:
+                    await db.execute("ALTER TABLE jobs ADD COLUMN total_records INTEGER DEFAULT 0")
+                    logger.info("sqlite_migration_applied", table="jobs", column="total_records")
+
+                # Add other missing columns from schema
+                if "processed_records" not in cols:
+                    await db.execute("ALTER TABLE jobs ADD COLUMN processed_records INTEGER DEFAULT 0")
+                    logger.info("sqlite_migration_applied", table="jobs", column="processed_records")
+
+                if "failed_records" not in cols:
+                    await db.execute("ALTER TABLE jobs ADD COLUMN failed_records INTEGER DEFAULT 0")
+                    logger.info("sqlite_migration_applied", table="jobs", column="failed_records")
+
+                await db.commit()
+            except Exception as e:
+                # Log and proceed; initialization shouldn't fatally fail due to migrations
+                logger.warning("sqlite_migration_warning", error=str(e))
+
     async def create_job(self, job_id: str, name: Optional[str] = None) -> Dict[str, Any]:
         """Insert a job; if it already exists, reset it."""
         async with aiosqlite.connect(self.db_path) as db:

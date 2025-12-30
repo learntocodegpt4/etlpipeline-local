@@ -5,6 +5,7 @@ from src.extract.extractors.classifications import ClassificationsExtractor
 from src.extract.extractors.pay_rates import PayRatesExtractor
 from src.extract.extractors.expense_allowances import ExpenseAllowancesExtractor
 from src.extract.extractors.wage_allowances import WageAllowancesExtractor
+from src.extract.extractors.penalties import PenaltiesExtractor
 
 __all__ = [
     "AwardsExtractor",
@@ -12,4 +13,5 @@ __all__ = [
     "PayRatesExtractor",
     "ExpenseAllowancesExtractor",
     "WageAllowancesExtractor",
+    "PenaltiesExtractor",
 ]

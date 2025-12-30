@@ -1,0 +1,27 @@
+# Multi-stage build for RuleEngine .NET API
+# Build image
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
+WORKDIR /src
+
+# Copy solution and restore
+COPY RuleEngine/RuleEngine.sln ./RuleEngine/
+COPY RuleEngine/RuleEngine.API/RuleEngine.API.csproj ./RuleEngine/RuleEngine.API/
+COPY RuleEngine/RuleEngine.Application/RuleEngine.Application.csproj ./RuleEngine/RuleEngine.Application/
+COPY RuleEngine/RuleEngine.Domain/RuleEngine.Domain.csproj ./RuleEngine/RuleEngine.Domain/
+COPY RuleEngine/RuleEngine.Infrastructure/RuleEngine.Infrastructure.csproj ./RuleEngine/RuleEngine.Infrastructure/
+COPY RuleEngine/RuleEngine.Tests/RuleEngine.Tests.csproj ./RuleEngine/RuleEngine.Tests/
+RUN dotnet restore ./RuleEngine/RuleEngine.sln
+
+# Copy the rest of sources
+COPY RuleEngine/ ./RuleEngine/
+
+# Build and publish
+RUN dotnet publish ./RuleEngine/RuleEngine.API/RuleEngine.API.csproj -c Release -o /app/publish /p:UseAppHost=false
+
+# Runtime image
+FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
+WORKDIR /app
+ENV ASPNETCORE_URLS=http://0.0.0.0:5016
+EXPOSE 5016
+COPY --from=build /app/publish .
+ENTRYPOINT ["dotnet", "RuleEngine.API.dll"]

@@ -1,0 +1,100 @@
+# Azure DevOps: Next.js UI - independent build & deploy
+# Builds only when UI files change and deploys only the UI service
+
+trigger:
+  branches:
+    include:
+      - main
+      - master
+      - copilot/*
+  paths:
+    include:
+      - ui/**
+      - docker/Dockerfile.ui
+      - docker/docker-compose.yml
+    exclude:
+      - src/**
+      - RuleEngine/**
+
+pr:
+  branches:
+    include:
+      - main
+      - master
+  paths:
+    include:
+      - ui/**
+      - docker/Dockerfile.ui
+      - docker/docker-compose.yml
+    exclude:
+      - src/**
+      - RuleEngine/**
+
+variables:
+  COMPOSE_FILE: 'docker/docker-compose.yml'
+  SERVICE_NAME: 'ui'
+  IMAGE_TAG: '$(Build.BuildId)'
+  USE_LATEST_TAG: 'true'
+  DOCKER_REGISTRY: ''
+  DOCKER_REPO_PREFIX: 'etl'
+
+stages:
+- stage: Build
+  displayName: Build UI image
+  jobs:
+  - job: BuildImage
+    pool:
+      vmImage: 'windows-2022'
+    steps:
+    - checkout: self
+    - task: PowerShell@2
+      displayName: Build UI Docker image
+      inputs:
+        targetType: inline
+        script: |
+          $tag = "$(SERVICE_NAME):$(IMAGE_TAG)"
+          docker build -f docker/Dockerfile.ui -t $tag .
+          if ("$(USE_LATEST_TAG)" -eq "true") { docker tag $tag "$(SERVICE_NAME):latest" }
+    - ${{ if ne(variables.DOCKER_REGISTRY, '') }}:
+      - task: PowerShell@2
+        displayName: Docker login
+        inputs:
+          targetType: inline
+          script: |
+            echo $(DOCKER_PASSWORD) | docker login $(DOCKER_REGISTRY) --username $(DOCKER_USERNAME) --password-stdin
+      - task: PowerShell@2
+        displayName: Push image
+        inputs:
+          targetType: inline
+          script: |
+            $reg = "$(DOCKER_REGISTRY)"
+            $prefix = "$(DOCKER_REPO_PREFIX)"
+            docker tag "$(SERVICE_NAME):$(IMAGE_TAG)" "$reg/$prefix/$(SERVICE_NAME):$(IMAGE_TAG)"
+            if ("$(USE_LATEST_TAG)" -eq "true") { docker tag "$(SERVICE_NAME):latest" "$reg/$prefix/$(SERVICE_NAME):latest" }
+            docker push "$reg/$prefix/$(SERVICE_NAME):$(IMAGE_TAG)"
+            if ("$(USE_LATEST_TAG)" -eq "true") { docker push "$reg/$prefix/$(SERVICE_NAME):latest" }
+
+- stage: Deploy
+  displayName: Deploy UI service (Docker Compose)
+  dependsOn: Build
+  jobs:
+  - job: ComposeUp
+    pool:
+      name: local-dev-agents
+      demands:
+        - agent.os -equals Windows_NT
+    steps:
+    - checkout: self
+    - task: PowerShell@2
+      displayName: Compose build & up for UI
+      inputs:
+        targetType: inline
+        script: |
+          docker compose -f $(COMPOSE_FILE) build --no-cache $(SERVICE_NAME)
+          docker compose -f $(COMPOSE_FILE) up -d $(SERVICE_NAME)
+    - task: PowerShell@2
+      displayName: Check service
+      inputs:
+        targetType: inline
+        script: |
+          docker compose -f $(COMPOSE_FILE) ps $(SERVICE_NAME)

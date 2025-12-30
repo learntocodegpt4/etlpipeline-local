@@ -48,6 +48,14 @@ nosetests.xml
 coverage.xml
 *.cover
 *.py.cover
+
+# .NET / C# build artifacts
+[Bb]in/
+[Oo]bj/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
 .hypothesis/
 .pytest_cache/
 cover/
@@ -191,6 +199,12 @@ cython_debug/
 # Ruff stuff:
 .ruff_cache/
 
+# macOS Finder metadata
+.DS_Store
+**/.DS_Store
+.ds_store
+**/.ds_store
+
 # PyPI configuration file
 .pypirc
 
@@ -232,3 +246,6 @@ docker-compose.override.yml
 *.pem
 *.key
 secrets.json
+**.DS_Store
+
+.fake

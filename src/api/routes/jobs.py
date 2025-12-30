@@ -35,13 +35,13 @@ class JobResponse(BaseModel):
     job_id: str
     name: Optional[str] = None
     status: str
-    start_time: str
-    end_time: Optional[str]
-    duration_seconds: Optional[float]
-    total_records_processed: int
-    error_count: int
-    warning_count: int
-    error_message: Optional[str]
+    start_time: Optional[str] = None
+    end_time: Optional[str] = None
+    duration_seconds: Optional[float] = None
+    total_records_processed: Optional[int] = 0
+    error_count: Optional[int] = 0
+    warning_count: Optional[int] = 0
+    error_message: Optional[str] = None
 
 
 class JobStepResponse(BaseModel):
@@ -212,3 +212,50 @@ async def delete_job(job_id: str, sm: StateManager = Depends(get_state_manager))
     # sm = Depends(get_state_manager)
     await sm.delete_job(job_id)
     return {"deleted": job_id}
+
+
+@router.get("/jobs/{job_id}/diagnostics")
+async def get_job_diagnostics(job_id: str, sm: StateManager = Depends(get_state_manager)) -> Dict[str, Any]:
+    """Get detailed diagnostics for a job including step-by-step breakdown"""
+    from src.load.sql_connector import get_connector
+    
+    job = await sm.get_job(job_id)
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+    
+    steps = await sm.get_job_steps(job_id)
+    
+    # Build step summary
+    step_summary = {}
+    for step in steps:
+        step_name = step.get('step_name', 'unknown')
+        step_summary[step_name] = {
+            'status': step.get('status'),
+            'records_processed': step.get('records_processed', 0),
+            'records_failed': step.get('records_failed', 0),
+            'error': step.get('error_message'),
+            'duration_seconds': step.get('duration_seconds'),
+        }
+    
+    # Check database tables for actual row counts
+    table_counts = {}
+    try:
+        connector = get_connector()
+        tables = ['Stg_TblAwards', 'Stg_TblClassifications', 'Stg_TblPayRates', 
+                  'Stg_TblExpenseAllowances', 'Stg_TblWageAllowances', 'Stg_TblPenalties']
+        for table in tables:
+            try:
+                result = connector.execute_query(f"SELECT COUNT(*) as cnt FROM {table}")
+                table_counts[table] = result[0]['cnt'] if result else 0
+            except Exception as e:
+                table_counts[table] = f"error: {str(e)}"
+    except Exception as e:
+        logger.error("diagnostics_db_error", error=str(e))
+    
+    return {
+        'job': job,
+        'step_summary': step_summary,
+        'table_row_counts': table_counts,
+        'warnings': job.get('warnings', []),
+        'errors': job.get('error_message'),
+    }

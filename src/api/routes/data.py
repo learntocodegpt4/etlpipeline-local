@@ -19,6 +19,7 @@ ALLOWED_TABLES = [
     "Stg_TblPayRates",
     "Stg_TblExpenseAllowances",
     "Stg_TblWageAllowances",
+    "Stg_TblPenalties",
 ]
 
 
@@ -56,16 +57,27 @@ async def preview_data(
         where_conditions = []
         params: Dict[str, Any] = {"limit": page_size, "offset": offset}
 
+        # Handle award_code filter - map to correct column based on table
+        # Support partial text filtering via LIKE. If the user provides no wildcard,
+        # treat it as a prefix search (e.g., 'MA00012' -> 'MA00012%'). If the user
+        # includes '*' we convert it to '%' for SQL LIKE semantics.
         if award_code:
-            where_conditions.append("award_code = @award_code")
-            params["award_code"] = award_code
+            col = "code" if table == "Stg_TblAwards" else "award_code"
+            # Normalize wildcard: if user included '*', convert to '%'
+            pattern = award_code.replace("*", "%")
+            # If user did not include any SQL wildcard, use prefix match by default
+            if "%" not in pattern and "_" not in pattern:
+                pattern = f"{pattern}%"
+            where_conditions.append(f"{col} LIKE :award_code")
+            params["award_code"] = pattern
 
+        # Handle code filter (for Stg_TblAwards direct filtering)
         if code:
-            where_conditions.append("code = @code")
+            where_conditions.append("code = :code")
             params["code"] = code
 
         if name:
-            where_conditions.append("name LIKE @name")
+            where_conditions.append("name LIKE :name")
             params["name"] = f"%{name}%"
 
         where_clause = ""

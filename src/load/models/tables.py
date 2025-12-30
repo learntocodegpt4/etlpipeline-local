@@ -163,6 +163,39 @@ class WageAllowance(Base):
     )
 
 
+class Penalty(Base):
+    """Penalties table model"""
+
+    __tablename__ = "Stg_TblPenalties"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    penalty_fixed_id = Column(Integer, nullable=False)
+    award_code = Column(String(50), nullable=False, index=True)
+    clause_fixed_id = Column(Integer, nullable=True)
+    clause_description = Column(String(2000), nullable=True)
+    classification_level = Column(Integer, nullable=True)
+    penalty_description = Column(String(1000), nullable=True)
+    rate = Column(Float, nullable=True)
+    employee_rate_type_code = Column(String(20), nullable=True)
+    penalty_calculated_value = Column(Float, nullable=True)
+    calculated_includes_all_purpose = Column(Boolean, nullable=True)
+    base_pay_rate_id = Column(String(50), nullable=True)
+    operative_from = Column(DateTime, nullable=True)
+    operative_to = Column(DateTime, nullable=True)
+    version_number = Column(Integer, nullable=True)
+    last_modified_datetime = Column(DateTime, nullable=True)
+    published_year = Column(Integer, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    __table_args__ = (
+        Index("ix_stg_tblpenalties_award_year", "award_code", "published_year"),
+        Index("ix_stg_tblpenalties_penalty_id", "penalty_fixed_id"),
+        Index("ix_stg_tblpenalties_classification_level", "classification_level"),
+        Index("ix_stg_tblpenalties_base_pay_rate", "base_pay_rate_id"),
+    )
+
+
 class ETLJobLog(Base):
     """ETL job execution history"""
 
